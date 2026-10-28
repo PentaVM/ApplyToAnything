@@ -1,0 +1,26 @@
+# Python / backend
+__pycache__/
+*.py[cod]
+*.db
+.venv/
+venv/
+.env
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+.idea/
+android/
+ios/
+linux/
+macos/
+windows/
+web/
+
+# SO / editor
+.DS_Store
+Thumbs.db

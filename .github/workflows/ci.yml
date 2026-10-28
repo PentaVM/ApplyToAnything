@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install backend deps
+        run: pip install -r backend/requirements.txt
+      - name: Import check
+        working-directory: backend
+        run: python -c "from app.main import app; print('backend OK:', app.title)"
+      - name: Smoke tests (agregador, SQL, auth)
+        working-directory: backend
+        run: python -u tests_smoke.py
+
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate platform folders (android/ etc.)
+        run: flutter create . --org com.applytoanything --project-name apply_to_anything
+      - name: Pub get
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Build debug APK
+        run: flutter build apk --debug
