@@ -7,7 +7,7 @@ import time
 
 from .config import DB_PATH
 
-_lock = threading.Lock()
+_lock = threading.RLock()  # reentrante: query()/execute() toman el lock y llaman a conn()
 _conn: sqlite3.Connection | None = None
 
 SCHEMA = """
