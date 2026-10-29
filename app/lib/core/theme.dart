@@ -53,8 +53,8 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: accent.withOpacity(0.18),
-        labelTextStyle: const MaterialStatePropertyAll(
+        indicatorColor: accent.withValues(alpha: 0.18),
+        labelTextStyle: const WidgetStatePropertyAll(
           TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
       ),

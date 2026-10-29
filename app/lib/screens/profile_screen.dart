@@ -129,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: AppTheme.accent.withOpacity(0.2),
+                backgroundColor: AppTheme.accent.withValues(alpha: 0.2),
                 child: Text(
                   (user?.name.isNotEmpty == true ? user!.name[0] : '?')
                       .toUpperCase(),
@@ -216,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
                 ),
                 checkmarkColor: Colors.white,
-                selectedColor: AppTheme.accent.withOpacity(0.85),
+                selectedColor: AppTheme.accent.withValues(alpha: 0.85),
                 backgroundColor: AppTheme.bg,
                 side: BorderSide(color: sel ? AppTheme.accent : Colors.white24),
                 onSelected: (v) => setState(() {
@@ -233,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 18),
           _section('Modalidad'),
           DropdownButtonFormField<String>(
-            value: _modality,
+            initialValue: _modality,
             dropdownColor: AppTheme.surface,
             decoration: const InputDecoration(),
             items: AppConstants.modalities
@@ -249,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             contentPadding: EdgeInsets.zero,
             title: const Text('Solo ofertas remotas'),
             value: _remoteOnly,
-            activeColor: AppTheme.green,
+            activeThumbColor: AppTheme.green,
             onChanged: (v) => setState(() {
               _remoteOnly = v;
               _touch();
@@ -258,7 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           _section('Nivel de experiencia'),
           DropdownButtonFormField<String>(
-            value: _seniority,
+            initialValue: _seniority,
             dropdownColor: AppTheme.surface,
             decoration: const InputDecoration(),
             items: AppConstants.seniorities
@@ -286,7 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<String>(
-                  value: _currency,
+                  initialValue: _currency,
                   dropdownColor: AppTheme.surface,
                   decoration: const InputDecoration(),
                   items: AppConstants.currencies

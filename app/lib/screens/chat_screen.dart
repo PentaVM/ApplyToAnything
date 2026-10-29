@@ -168,10 +168,10 @@ class _ChatScreenState extends State<ChatScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppTheme.green.withOpacity(0.1),
+                color: AppTheme.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
                 border:
-                    Border.all(color: AppTheme.green.withOpacity(0.35)),
+                    Border.all(color: AppTheme.green.withValues(alpha: 0.35)),
               ),
               child: Row(
                 children: [
@@ -270,7 +270,7 @@ class _ChatScreenState extends State<ChatScreen> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.78),
         decoration: BoxDecoration(
-          color: isUser ? AppTheme.accent.withOpacity(0.9) : AppTheme.surface,
+          color: isUser ? AppTheme.accent.withValues(alpha: 0.9) : AppTheme.surface,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18),
             topRight: const Radius.circular(18),

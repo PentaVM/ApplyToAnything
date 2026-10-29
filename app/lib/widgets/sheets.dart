@@ -65,7 +65,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               title: const Text('Solo trabajo remoto'),
               subtitle: const Text('Filtra ofertas 100% remotas'),
               value: _remoteOnly,
-              activeColor: AppTheme.green,
+              activeThumbColor: AppTheme.green,
               onChanged: (v) => setState(() => _remoteOnly = v),
             ),
             const SizedBox(height: 6),
@@ -90,7 +90,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                             sel ? FontWeight.w800 : FontWeight.w500,
                       ),
                       checkmarkColor: Colors.white,
-                      selectedColor: AppTheme.accent.withOpacity(0.85),
+                      selectedColor: AppTheme.accent.withValues(alpha: 0.85),
                       backgroundColor: AppTheme.bg,
                       side: BorderSide(
                           color: sel ? AppTheme.accent : Colors.white24),

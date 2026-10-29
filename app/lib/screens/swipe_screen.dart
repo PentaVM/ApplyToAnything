@@ -299,7 +299,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
             height: big ? 66 : 56,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withOpacity(0.14),
+              color: color.withValues(alpha: 0.14),
               border: Border.all(color: color, width: 2),
             ),
             child: Icon(icon, color: color, size: big ? 32 : 27),
@@ -329,9 +329,9 @@ class _SwipeScreenState extends State<SwipeScreen> {
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
