@@ -1,5 +1,7 @@
 # ApplyToAnything 🧡📱
 
+[![CI](https://github.com/PentaVM/ApplyToAnything/actions/workflows/ci.yml/badge.svg)](https://github.com/PentaVM/ApplyToAnything/actions/workflows/ci.yml)
+
 **Busca empleo haciendo swipe (estilo Tinder), habla con una IA asesora gratuita y postula
 con carta de presentación generada automáticamente.** Clon libre de herramientas tipo
 aiAutoApply, hecho en **Flutter (Android)** + **backend FastAPI** + **OmniRoute** como
