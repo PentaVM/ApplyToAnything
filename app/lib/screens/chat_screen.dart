@@ -137,8 +137,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final app = context.watch<AppState>();
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          children: const [
+        title: const Column(
+          children: [
             Text('Ana · Asesora IA',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             Text('vía OmniRoute (gratis)',
