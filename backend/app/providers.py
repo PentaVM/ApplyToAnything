@@ -251,10 +251,8 @@ async def search_all(q="", countries=None, remote_only=False, page=1, sources=No
     for j in jobs:
         if remote_only and not j["remote"]:
             continue
-        if terms and j["source"] in {"arbeitnow", "remoteok"}:
-            searchable = _clean_html(" ".join([j["title"], *j["tags"]]))
-            if not terms.issubset(SEARCH_TERM.findall(searchable.casefold())):
-                continue
+        if terms and not terms.issubset(SEARCH_TERM.findall(_clean_html(j["title"]).casefold())):
+            continue
         key = (j["title"].lower().strip()[:80], j["company"].lower().strip())
         if key in seen:
             continue
