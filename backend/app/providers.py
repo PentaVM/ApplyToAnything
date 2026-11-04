@@ -41,6 +41,7 @@ ADZUNA_COUNTRIES = {
 JOOBLE_COUNTRIES = set(COUNTRIES) - {"xx"}
 
 DEFAULT_SOURCES = ["remotive", "arbeitnow", "remoteok", "adzuna", "jooble"]
+SEARCH_TERM = re.compile(r"\w+(?:\+\+|#)?")
 
 
 def _clean_html(text: str, limit: int = 1200) -> str:
@@ -243,12 +244,17 @@ async def search_all(q="", countries=None, remote_only=False, page=1, sources=No
         if isinstance(res, Exception):
             errors.append(f"{name}: {type(res).__name__}")
             continue
-        jobs.extend(res)
+        jobs.extend(job for job in res if job is not None)
 
+    terms = set(SEARCH_TERM.findall(q.casefold()))
     seen, uniq = set(), []
     for j in jobs:
         if remote_only and not j["remote"]:
             continue
+        if terms and j["source"] in {"arbeitnow", "remoteok"}:
+            searchable = _clean_html(" ".join([j["title"], *j["tags"]]))
+            if not terms.issubset(SEARCH_TERM.findall(searchable.casefold())):
+                continue
         key = (j["title"].lower().strip()[:80], j["company"].lower().strip())
         if key in seen:
             continue

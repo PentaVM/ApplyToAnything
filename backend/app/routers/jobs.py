@@ -28,11 +28,12 @@ async def jobs_search(
     user=Depends(current_user),
     q: str = Query("", max_length=120),
     countries: str = Query("", max_length=200),
-    remote: str = Query("any", pattern="^(any|only)$"),
+    remote: str | None = Query(None, pattern="^(any|only)$"),
     page: int = Query(1, ge=1, le=10),
     sources: str = Query("", max_length=200),
 ):
     prefs = get_prefs(user["id"])
+    remote = remote or ("only" if prefs.get("remote_only") is True else "any")
     ccs = [c.strip().lower() for c in countries.split(",") if c.strip()]
     if not ccs:
         ccs = [str(c).lower() for c in (prefs.get("countries") or []) if c]
