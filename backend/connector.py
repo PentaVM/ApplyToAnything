@@ -66,18 +66,31 @@ def run_provider(provider, messages):
             if not AGY_DENY.issubset(policy.get("deny", [])):
                 raise ValueError("Configura las reglas deny del conector Antigravity en este host")
             command = ["agy", "--mode", "plan", "--sandbox", "--disable-slash-commands",
-                       "--print-timeout", "90s", "-p", prompt]
+                       "--print-timeout", "90s", "--input-format", "stream-json",
+                       "--output-format", "stream-json"]
+            prompt = json.dumps({"event": "user", "message": {"content": prompt}}) + "\n"
         else:
             command = json.loads(os.environ.get("ATA_PROVIDER_COMMAND", "[]"))
             if not isinstance(command, list) or not command or not all(isinstance(arg, str) for arg in command):
                 raise ValueError("ATA_PROVIDER_COMMAND debe ser una lista JSON de argumentos")
         with tempfile.TemporaryDirectory(prefix="ata-provider-") as cwd:
             process = subprocess.run(
-                command, input="" if provider == "antigravity" else prompt,
+                command, input=prompt,
                 capture_output=True, text=True, encoding="utf-8", errors="replace",
                 cwd=cwd, env=env, timeout=95, check=True,
             )
         result = process.stdout
+        if provider == "antigravity":
+            for line in process.stdout.splitlines():
+                event = json.loads(line)
+                if event.get("event") == "result":
+                    outcome = event["result"]
+                    if outcome.get("status") != "SUCCESS":
+                        raise ValueError("Antigravity no completó el turno")
+                    result = outcome.get("response")
+                    break
+            else:
+                raise ValueError("Antigravity no devolvió un resultado")
     if not isinstance(result, str) or not result.strip():
         raise ValueError("El proveedor devolvió una respuesta vacía")
     return result.strip()[:12000]

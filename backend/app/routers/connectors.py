@@ -94,15 +94,18 @@ def revoke(provider: Provider, user=Depends(current_user)):
 def enqueue(user_id: int, provider: str, messages: list) -> dict:
     now = int(time.time())
     execute("DELETE FROM ai_tasks WHERE created_at < ?", (now - 900,))
+    execute(
+        """UPDATE ai_tasks SET state='failed', request='[]' WHERE user_id=? AND provider=?
+           AND ((state='queued' AND created_at < ?) OR (state='running' AND lease_until < ?))""",
+        (user_id, provider, now - 60, now),
+    )
     task_id = uuid.uuid4().hex
     inserted = execute(
-        """INSERT INTO ai_tasks(id, user_id, provider, request, created_at)
-           SELECT ?, user_id, provider, ?, ? FROM ai_connectors
+        """INSERT INTO ai_tasks(id, user_id, provider, connector_hash, request, created_at)
+           SELECT ?, user_id, provider, token_hash, ?, ? FROM ai_connectors
            WHERE user_id=? AND provider=? AND seen_at >= ?
-           AND (SELECT COUNT(*) FROM ai_tasks
-                WHERE user_id=? AND state IN ('queued', 'running') AND created_at >= ?) < 3""",
-        (task_id, json.dumps(messages, ensure_ascii=False), now,
-         user_id, provider, now - 60, user_id, now - 150),
+           ON CONFLICT DO NOTHING""",
+        (task_id, json.dumps(messages, ensure_ascii=False), now, user_id, provider, now - 60),
     )
     if not inserted:
         raise HTTPException(status_code=503, detail="Conector desconectado u ocupado")
@@ -124,12 +127,12 @@ def claim(provider: Provider, response: Response, worker=Depends(_worker)):
     lease = secrets.token_urlsafe(24)
     rows = query(
         """UPDATE ai_tasks SET state='running', lease=?, lease_until=?
-           WHERE id=(SELECT id FROM ai_tasks WHERE user_id=? AND provider=? AND state='queued'
+           WHERE id=(SELECT id FROM ai_tasks WHERE user_id=? AND provider=? AND connector_hash=? AND state='queued'
                      AND created_at >= ? ORDER BY created_at, id LIMIT 1)
            AND state='queued' AND EXISTS (
              SELECT 1 FROM ai_connectors WHERE user_id=? AND provider=? AND token_hash=?
            ) RETURNING id, request""",
-        (lease, now + 120, owner, provider, now - 60, owner, provider, token_hash),
+        (lease, now + 120, owner, provider, token_hash, now - 60, owner, provider, token_hash),
     )
     response.headers["Cache-Control"] = "no-store"
     if not rows:
@@ -142,9 +145,10 @@ def complete(task_id: str, body: Completion, worker=Depends(_worker)):
     owner, provider = worker["user_id"], worker["provider"]
     if not execute(
         """UPDATE ai_tasks SET state=?, reply=?, request='[]'
-           WHERE id=? AND user_id=? AND provider=? AND lease=? AND state='running' AND lease_until>=?
+           WHERE id=? AND user_id=? AND provider=? AND connector_hash=? AND lease=?
+           AND state='running' AND lease_until>=?
            AND EXISTS (SELECT 1 FROM ai_connectors WHERE user_id=? AND provider=? AND token_hash=?)""",
-        ("failed" if body.error else "done", body.reply, task_id, owner, provider,
+        ("failed" if body.error else "done", body.reply, task_id, owner, provider, worker["token_hash"],
          body.lease, int(time.time()), owner, provider, worker["token_hash"]),
     ):
         raise HTTPException(status_code=409, detail="La tarea no está disponible")
@@ -153,8 +157,14 @@ def complete(task_id: str, body: Completion, worker=Depends(_worker)):
 @router.get("/tasks/{task_id}")
 def result(task_id: str, response: Response, user=Depends(current_user)):
     now = int(time.time())
-    rows = query("SELECT * FROM ai_tasks WHERE id=? AND user_id=? AND created_at>=?",
-                 (task_id, user["id"], now - 900))
+    rows = query(
+        """SELECT t.state, t.reply, t.provider, t.created_at, t.lease_until,
+                  c.token_hash IS NOT NULL AS paired
+           FROM ai_tasks t LEFT JOIN ai_connectors c
+             ON c.user_id=t.user_id AND c.provider=t.provider AND c.token_hash=t.connector_hash
+           WHERE t.id=? AND t.user_id=? AND t.created_at>=?""",
+        (task_id, user["id"], now - 900),
+    )
     if not rows:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     row = rows[0]
@@ -168,4 +178,6 @@ def result(task_id: str, response: Response, user=Depends(current_user)):
         return {"state": "failed", "detail": "El conector no respondió a tiempo"}
     if state == "failed":
         return {"state": state, "detail": "El proveedor local no pudo responder"}
+    if not row["paired"]:
+        return {"state": "failed", "detail": "La conexión de este proveedor fue sustituida"}
     return {"state": state}

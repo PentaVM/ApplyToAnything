@@ -60,6 +60,7 @@ def main():
     assert client.get("/me", headers=worker).status_code == 401
     request = cover(owner)
     assert request.status_code == 202, request.text
+    assert cover(owner).status_code == 503
     task_id = request.json()["task_id"]
     assert client.get(f"/ai/tasks/{task_id}", headers=other).status_code == 404
     assert claim(foreign, "codex").json() == {"task": None}
@@ -73,14 +74,30 @@ def main():
     assert client.put(f"/ai/worker/tasks/{task_id}", headers=foreign, json=completion).status_code == 409
     assert client.put(f"/ai/worker/tasks/{task_id}", headers=worker, json=completion).status_code == 204
     assert client.get(f"/ai/tasks/{task_id}", headers=owner).json()["reply"] == "Carta de prueba"
-    assert client.delete("/ai/connectors/codex", headers=owner).status_code == 204
+    stale = cover(owner).json()["task_id"]
+    replacement = pair(owner, "codex")
     assert claim(worker, "codex").status_code == 401
+    assert claim(replacement, "codex").json() == {"task": None}
+    assert client.get(f"/ai/tasks/{stale}", headers=owner).json()["state"] == "failed"
+    assert client.delete("/ai/connectors/codex", headers=owner).status_code == 204
+    assert claim(replacement, "codex").status_code == 401
+
+    original = {"job_id": "demo:1", "title": "Soporte", "status": "liked", "cover_letter": "Borrador"}
+    application = client.post("/applications", headers=owner, json=original).json()["application"]
+    client.patch(f"/applications/{application['id']}", headers=owner, json={
+        "status": "applied", "confirmed_submission": True,
+    }).raise_for_status()
+    saved = client.post("/applications", headers=owner, json={**original, "cover_letter": ""}).json()["application"]
+    assert saved["status"] == "applied" and saved["cover_letter"] == "Borrador"
 
     with patch("app.routers.ai.gateway_chat", return_value={"reply": "Prueba", "model": "demo"}) as gateway:
         message = {"messages": [{"role": "user", "content": "¿Qué cargos busco?"}]}
-        response = client.post("/ai/chat", headers=owner, json={**message, "provider": "auto"})
+        response = client.post("/ai/chat", headers=owner, json={
+            **message, "provider": "auto", "api_key": "direct-only", "model": "direct-model",
+        })
         assert response.status_code == 200, response.text
         assert gateway.call_args.kwargs["api_key"] is None
+        assert gateway.call_args.kwargs["model"] is None
         response = client.post("/ai/chat", headers=owner, json={
             **message, "provider": "api_key", "api_key": "test-key", "model": "demo",
         })

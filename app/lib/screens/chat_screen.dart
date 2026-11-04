@@ -7,9 +7,10 @@ import '../core/theme.dart';
 import '../state/app_state.dart';
 
 class _Msg {
-  _Msg(this.role, this.text);
+  _Msg(this.role, this.text, {this.includeInHistory = true});
   final String role;
   final String text;
+  final bool includeInHistory;
 }
 
 /// Chat de búsqueda con Ana y el proveedor elegido por la cuenta.
@@ -22,7 +23,8 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final List<_Msg> _msgs = [
-    _Msg('assistant', 'Cuéntame qué trabajo estás buscando.'),
+    _Msg('assistant', 'Cuéntame qué trabajo estás buscando.',
+        includeInHistory: false),
   ];
   final TextEditingController _ctrl = TextEditingController();
   final ScrollController _scroll = ScrollController();
@@ -61,20 +63,23 @@ class _ChatScreenState extends State<ChatScreen> {
     _ctrl.clear();
     setState(() {
       _msgs.add(_Msg('user', body));
-      _msgs.add(_Msg('assistant', '…'));
+      _msgs.add(_Msg('assistant', '…', includeInHistory: false));
       _sending = true;
     });
     _scrollDown();
 
     final app = context.read<AppState>();
-    final history = [
-      for (final m in _msgs)
-        if (m.text != '…') {'role': m.role, 'content': m.text},
-    ];
+    final history = _msgs.reversed
+        .where((m) => m.includeInHistory)
+        .take(10)
+        .toList()
+        .reversed
+        .map((m) => {'role': m.role, 'content': m.text})
+        .toList();
 
     try {
       final r = await app.api.ask('/ai/chat', {
-        ...app.aiExtras(),
+        ...await app.aiExtras(),
         'messages': history,
       });
       final reply = (r['reply'] ?? 'Sin respuesta del modelo.').toString();
@@ -88,8 +93,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       setState(() {
         _msgs.removeLast();
-        _msgs.add(_Msg('assistant',
-            '$e\n\nRevisa el estado del proveedor en Conexiones.'));
+        _msgs.add(_Msg(
+            'assistant', '$e\n\nRevisa el estado del proveedor en Conexiones.',
+            includeInHistory: false));
       });
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -168,8 +174,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 : () => setState(() {
                       _msgs
                         ..clear()
-                        ..add(_Msg('assistant',
-                            'Cuéntame qué trabajo estás buscando.'));
+                        ..add(_Msg(
+                            'assistant', 'Cuéntame qué trabajo estás buscando.',
+                            includeInHistory: false));
                     }),
           ),
         ],

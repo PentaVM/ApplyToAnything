@@ -161,7 +161,7 @@ class _CoverLetterSheetState extends State<_CoverLetterSheet> {
     final job = widget.job;
     try {
       final r = await app.api.ask('/ai/cover-letter', {
-        ...app.aiExtras(),
+        ...await app.aiExtras(),
         'job': {
           'id': job.id,
           'title': job.title,

@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS ai_tasks (
   id TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   provider TEXT NOT NULL,
+  connector_hash TEXT NOT NULL,
   request TEXT NOT NULL,
   created_at BIGINT NOT NULL,
   state TEXT NOT NULL DEFAULT 'queued',
@@ -78,6 +79,9 @@ CREATE TABLE IF NOT EXISTS viewed_jobs (
 );
 """
 
+ACTIVE_TASK_INDEX = """CREATE UNIQUE INDEX IF NOT EXISTS one_active_ai_task
+ON ai_tasks(user_id, provider, connector_hash) WHERE state IN ('queued', 'running')"""
+
 
 def conn() -> sqlite3.Connection:
     global _conn
@@ -86,6 +90,11 @@ def conn() -> sqlite3.Connection:
             c = sqlite3.connect(DB_PATH, check_same_thread=False)
             c.row_factory = sqlite3.Row
             c.executescript(SCHEMA)
+            columns = c.execute("PRAGMA table_info(ai_tasks)").fetchall()
+            if not any(column["name"] == "connector_hash" for column in columns):
+                c.execute("ALTER TABLE ai_tasks ADD COLUMN connector_hash TEXT")
+                c.execute("UPDATE ai_tasks SET state='failed', request='[]' WHERE state IN ('queued', 'running')")
+            c.execute(ACTIVE_TASK_INDEX)
             c.commit()
             _conn = c
     return _conn
@@ -112,6 +121,12 @@ def _initialize_postgres(connection):
                 for statement in schema.split(";"):
                     if statement.strip():
                         connection.execute(statement)
+                connection.execute("ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS connector_hash TEXT")
+                connection.execute(
+                    "UPDATE ai_tasks SET state='failed', request='[]' "
+                    "WHERE connector_hash IS NULL AND state IN ('queued', 'running')"
+                )
+                connection.execute(ACTIVE_TASK_INDEX)
             _postgres_ready = True
 
 

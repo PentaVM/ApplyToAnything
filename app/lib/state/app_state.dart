@@ -156,9 +156,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Campos extra que la app añade a /ai/* para usar SU cuenta de OmniRoute.
-  Map<String, dynamic> aiExtras() => {
-        if (omniModel.isNotEmpty) 'model': omniModel,
-        if (omniKey.isNotEmpty) 'api_key': omniKey,
-      };
+  Future<Map<String, dynamic>> aiExtras() async {
+    if (omniKey.isEmpty) return {};
+    final data = await api.get('/ai/connectors');
+    if (data['selected'] != 'api_key') return {};
+    return {'model': omniModel, 'api_key': omniKey};
+  }
 }

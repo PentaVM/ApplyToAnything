@@ -93,7 +93,7 @@ async def _respond(body, user, messages, *, temperature, max_tokens):
     ):
         raise HTTPException(status_code=503, detail="Selecciona y conecta un proveedor de IA")
     return await gateway_chat(
-        messages, model=body.model or None, api_key=body.api_key or None,
+        messages, model=body.model if direct else None, api_key=body.api_key if direct else None,
         temperature=temperature, max_tokens=max_tokens, direct=direct,
     )
 

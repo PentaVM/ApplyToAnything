@@ -41,9 +41,13 @@ def upsert_application(body: ApplicationBody, user=Depends(current_user)):
               status, method, cover_letter, created_at)
            VALUES (?,?,?,?,?,?,?,?,?,?,?)
            ON CONFLICT(user_id, job_id) DO UPDATE SET
-             status = excluded.status,
-             method = excluded.method,
-             cover_letter = excluded.cover_letter""",
+             status = CASE WHEN applications.status = 'applied' AND applications.method = 'manual_confirmation'
+                           THEN applications.status ELSE excluded.status END,
+             method = CASE WHEN applications.status = 'applied' AND applications.method = 'manual_confirmation'
+                           THEN applications.method ELSE excluded.method END,
+             cover_letter = CASE WHEN applications.status = 'applied' AND applications.method = 'manual_confirmation'
+                                  THEN applications.cover_letter
+                                  ELSE COALESCE(NULLIF(excluded.cover_letter, ''), applications.cover_letter) END""",
         (user["id"], body.job_id[:200], body.title[:150], body.company[:100],
          body.url[:600], body.source[:40], body.country[:10],
          body.status, body.method[:40], body.cover_letter[:20000], now()),

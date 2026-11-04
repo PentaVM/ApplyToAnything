@@ -1,0 +1,7 @@
+.env*
+.venv
+.git
+.vercel
+**/__pycache__
+*.db
+*.db-*
