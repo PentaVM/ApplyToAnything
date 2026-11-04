@@ -22,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _key =
       TextEditingController(text: context.read<AppState>().omniKey);
   bool _testing = false;
+  bool _saving = false;
   String? _testResult;
 
   @override
@@ -33,6 +34,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving || _testing) return;
+    setState(() => _saving = true);
     final app = context.read<AppState>();
     try {
       final next = AppState.normalizeBackendUrl(_backend.text);
@@ -45,9 +48,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? 'Conexión guardada. Vuelve a iniciar sesión.'
             : 'Ajustes guardados'),
       ));
-      Navigator.pop(context);
+      if (ModalRoute.of(context)?.isCurrent == true) Navigator.pop(context);
     } on ApiException catch (e) {
       if (mounted) setState(() => _testResult = e.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -163,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: _testing ? null : _test,
+                  onPressed: _testing || _saving ? null : _test,
                   style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(52)),
                   child: _testing
@@ -178,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: _testing ? null : _save,
+                  onPressed: _testing || _saving ? null : _save,
                   child: const Text('Guardar'),
                 ),
               ),

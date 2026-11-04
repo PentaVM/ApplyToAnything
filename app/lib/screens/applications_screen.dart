@@ -79,7 +79,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     if (!mounted || confirmed != true) return;
     await _update(() => context.read<AppState>().api.patch(
           '/applications/${a.id}',
-          {'status': 'applied'},
+          {'status': 'applied', 'confirmed_submission': true},
         ));
   }
 
@@ -123,8 +123,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final applied = _all.where((a) => a.status == 'applied').toList();
-    final liked = _all.where((a) => a.status == 'liked').toList();
+    final applied = _all.where((a) => a.confirmed).toList();
+    final pending =
+        _all.where((a) => a.status != 'skipped' && !a.confirmed).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -142,8 +143,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white38,
           tabs: const [
-            Tab(text: 'Enviadas'),
             Tab(text: 'Pendientes'),
+            Tab(text: 'Enviadas'),
           ],
         ),
       ),
@@ -162,8 +163,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
               : TabBarView(
                   controller: _tabs,
                   children: [
+                    _list(pending, appliedTab: false),
                     _list(applied, appliedTab: true),
-                    _list(liked, appliedTab: false),
                   ],
                 ),
     );
@@ -215,8 +216,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               subtitle: Text(
-                '${a.company} · ${a.source}${a.createdAt.length >= 10 ? ' · ${a.createdAt.substring(0, 10)}' : ''}',
-                maxLines: 1,
+                '${a.company} · ${a.source}'
+                '${a.createdAt.length >= 10 ? ' · ${a.createdAt.substring(0, 10)}' : ''}'
+                '${a.status == 'applied' && !a.confirmed ? '\nRegistro anterior · envío por confirmar' : ''}',
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Colors.white54, fontSize: 12.5),
               ),

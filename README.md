@@ -9,7 +9,8 @@ gateway de IA **100% gratuito**.
 
 Descarga el APK de Android desde [GitHub Releases](https://github.com/PentaVM/ApplyToAnything/releases).
 En el inicio de la app puedes abrir **Portafolio** sin cuenta y entrar a **Configurar conexión**
-para apuntar a tu backend antes de registrarte.
+para apuntar a tu backend antes de registrarte. Usa el backend de la misma versión para
+guardar confirmaciones de envío.
 
 ```
  ┌─────────────────────────┐        ┌──────────────────────────┐        ┌─────────────────────┐
@@ -95,8 +96,9 @@ flutter run          # o: flutter build apk --release
 ```
 
 El script configura el permiso de Internet y el HTTP necesario para conectar con el backend local.
-La compilación de GitHub Actions ejecuta el análisis y las pruebas antes de publicar el APK firmado
-con una clave de desarrollo para instalación directa.
+GitHub Actions ejecuta el análisis, las pruebas y la compilación. Los artefactos de CI
+usan una firma de desarrollo. El APK de Releases se firma con la clave de la app para
+instalación directa.
 
 ### 4. Conecta la app al backend
 

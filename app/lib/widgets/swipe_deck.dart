@@ -169,7 +169,11 @@ class _SwipeDeckState extends State<SwipeDeck>
                     angle: rot,
                     child: Stack(
                       children: [
-                        JobCard(job: jobs.first, top: true),
+                        JobCard(
+                          key: ValueKey(jobs.first.id),
+                          job: jobs.first,
+                          top: true,
+                        ),
                         _Stamp(
                           label: 'PREPARAR',
                           color: AppTheme.green,

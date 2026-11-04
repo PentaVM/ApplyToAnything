@@ -38,6 +38,9 @@ a = upsert_application(ApplicationBody(job_id="remotive:1", title="Dev", company
 print("upsert again ->", a["application"]["status"])
 print("list n=", len(list_applications(user)["applications"]))
 print("patch:", update_status(1, StatusBody(status="applied"), user))
+assert list_applications(user)["applications"][0]["method"] != "manual_confirmation"
+update_status(1, StatusBody(status="applied", confirmed_submission=True), user)
+assert list_applications(user)["applications"][0]["method"] == "manual_confirmation"
 
 # Agregador con datos simulados (sin red)
 import asyncio

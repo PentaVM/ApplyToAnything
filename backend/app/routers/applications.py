@@ -24,6 +24,7 @@ class ApplicationBody(BaseModel):
 
 class StatusBody(BaseModel):
     status: str
+    confirmed_submission: bool = False
 
 
 def _row_dict(r) -> dict:
@@ -73,9 +74,15 @@ def list_applications(user=Depends(current_user), status: str = ""):
 def update_status(app_id: int, body: StatusBody, user=Depends(current_user)):
     if body.status not in VALID_STATUS:
         raise HTTPException(status_code=400, detail="Estado no válido")
+    if body.confirmed_submission and body.status != "applied":
+        raise HTTPException(status_code=400, detail="Solo se puede confirmar un envío")
     cur = execute(
-        "UPDATE applications SET status = ? WHERE id = ? AND user_id = ?",
-        (body.status, app_id, user["id"]),
+        """UPDATE applications SET status = ?, method = CASE
+             WHEN ? THEN 'manual_confirmation'
+             WHEN method = 'manual_confirmation' AND ? != 'applied' THEN 'none'
+             ELSE method END
+           WHERE id = ? AND user_id = ?""",
+        (body.status, body.confirmed_submission, body.status, app_id, user["id"]),
     )
     if cur.rowcount == 0:
         raise HTTPException(status_code=404, detail="Postulación no encontrada")

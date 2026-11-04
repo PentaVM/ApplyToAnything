@@ -10,11 +10,15 @@ class Application {
     required this.status,
     required this.createdAt,
     this.coverLetter = '',
+    this.method = '',
   });
 
   final int id;
   final String jobId, title, company, url, source, country, status, createdAt;
   final String coverLetter;
+  final String method;
+
+  bool get confirmed => status == 'applied' && method == 'manual_confirmation';
 
   factory Application.fromJson(Map<String, dynamic> j) => Application(
         id: (j['id'] as num?)?.toInt() ?? 0,
@@ -27,5 +31,6 @@ class Application {
         status: (j['status'] ?? 'liked').toString(),
         createdAt: (j['created_at'] ?? '').toString(),
         coverLetter: (j['cover_letter'] ?? '').toString(),
+        method: (j['method'] ?? '').toString(),
       );
 }

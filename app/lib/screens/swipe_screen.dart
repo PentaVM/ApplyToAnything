@@ -106,6 +106,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
   }
 
   Future<void> _openFilters() async {
+    if (_deciding || _loading) return;
     final res = await showFilterSheet(
       context,
       selected: _countries,
@@ -113,6 +114,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
     );
     if (res == null || !mounted) return;
     setState(() {
+      _deciding = true;
       _countries = res.countries;
       _remoteOnly = res.remoteOnly;
     });
@@ -128,6 +130,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
                   'Los filtros se usarán en esta búsqueda. No se guardaron en el perfil.')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _deciding = false);
     }
     if (mounted) await _load(reset: true);
   }
