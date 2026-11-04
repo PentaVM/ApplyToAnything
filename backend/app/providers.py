@@ -209,7 +209,7 @@ async def fetch_jooble(client, q, country, page=1):
     return out
 
 
-async def search_all(q="", countries=None, remote_only=False, page=1, sources=None):
+async def search_all(q="", countries=None, remote_only=False, page=1, sources=None, *, match_title=False):
     """Ejecuta todas las consultas en paralelo, deduplica y ordena por fecha."""
     ccs = [c.strip().lower() for c in (countries or []) if c and c.strip()]
     if not ccs:
@@ -251,8 +251,10 @@ async def search_all(q="", countries=None, remote_only=False, page=1, sources=No
     for j in jobs:
         if remote_only and not j["remote"]:
             continue
-        if terms and not terms.issubset(SEARCH_TERM.findall(_clean_html(j["title"]).casefold())):
-            continue
+        if terms and (match_title or j["source"] in {"arbeitnow", "remoteok"}):
+            searchable = j["title"] if match_title else " ".join([j["title"], *j["tags"]])
+            if not terms.issubset(SEARCH_TERM.findall(_clean_html(searchable).casefold())):
+                continue
         key = (j["title"].lower().strip()[:80], j["company"].lower().strip())
         if key in seen:
             continue

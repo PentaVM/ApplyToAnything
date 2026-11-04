@@ -80,13 +80,15 @@ fake["data"].extend([
 ])
 matches, errors = asyncio.run(prov.search_all(q="C++ developer", sources=["arbeitnow"]))
 assert not errors and [job["id"] for job in matches] == ["arbeitnow:cpp"]
-matches, errors = asyncio.run(prov.search_all(q="Technical Support", sources=["remoteok", "remotive"]))
+matches, errors = asyncio.run(prov.search_all(
+    q="Technical Support", sources=["remoteok", "remotive"], match_title=True,
+))
 assert not errors and not matches
 
 from fastapi.testclient import TestClient
 from app.main import app
 
-update_prefs(PrefsBody(preferences={"remote_only": True}), user)
+update_prefs(PrefsBody(preferences={"remote_only": True, "role": "Writer"}), user)
 with TestClient(app) as client:
     headers = {"Authorization": "Bearer " + r["token"]}
     reply = client.get("/jobs/search", params={"sources": "arbeitnow"}, headers=headers)
@@ -95,4 +97,6 @@ with TestClient(app) as client:
     reply = client.get("/jobs/search", params={"sources": "arbeitnow", "remote": "any"}, headers=headers)
     assert reply.status_code == 200
     assert reply.json()["query"]["remote"] == "any"
+    reply = client.get("/jobs/search", params={"sources": "remotive"}, headers=headers)
+    assert [job["title"] for job in reply.json()["jobs"]] == ["Copywriter"]
 print("TODOS LOS TESTS FUNCIONALES OK")
