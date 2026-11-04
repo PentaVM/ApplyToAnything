@@ -68,6 +68,12 @@ ro, _ = asyncio.run(prov.search_all(q="", countries=["xx"], remote_only=True))
 print("remote_only n=", len(ro))
 matches, errors = asyncio.run(prov.search_all(q="PYTHON dev", sources=["arbeitnow"]))
 assert not errors and [job["id"] for job in matches] == ["arbeitnow:s1"]
+fake["data"].extend([
+    {"slug": "cpp", "company_name": "ACME", "title": "C++ Developer", "url": "https://a.b/cpp"},
+    {"slug": "csharp", "company_name": "Globex", "title": "C# Developer", "url": "https://a.b/csharp"},
+])
+matches, errors = asyncio.run(prov.search_all(q="C++ developer", sources=["arbeitnow"]))
+assert not errors and [job["id"] for job in matches] == ["arbeitnow:cpp"]
 
 from fastapi.testclient import TestClient
 from app.main import app
