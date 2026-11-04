@@ -138,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: TextStyle(color: Colors.white38, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 22),
-          _section('OmniRoute (IA gratis)'),
+          _section('Modelo y clave API'),
           TextField(
             controller: _model,
             decoration: const InputDecoration(
@@ -151,16 +151,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             controller: _key,
             obscureText: true,
             decoration: const InputDecoration(
-              labelText: 'API key de OmniRoute (opcional)',
-              hintText: 'Solo si REQUIRE_API_KEY=true',
+              labelText: 'Clave API (opcional)',
+              hintText: 'Solo durante esta sesión',
             ),
           ),
           const SizedBox(height: 12),
           const Text(
-            'La app habla con Ana a través de OmniRoute, un gateway gratuito '
-            'que corre en tu PC. Instálalo con:\n'
-            'npm install -g omniroute && omniroute\n'
-            'y configura proveedores gratuitos en su panel (localhost:20128).',
+            'Elige el proveedor en Conexiones. Si usas un conector, '
+            'configura el modelo y las credenciales en el equipo que lo ejecuta.',
             style: TextStyle(color: Colors.white38, fontSize: 12, height: 1.5),
           ),
           const SizedBox(height: 18),

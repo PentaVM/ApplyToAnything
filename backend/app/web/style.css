@@ -1,0 +1,18 @@
+:root { color-scheme: dark; font: 16px/1.5 system-ui; background: #101316; color: #f4f1ea; }
+* { box-sizing: border-box; }
+main { width: min(840px, calc(100% - 32px)); margin: 2rem auto 5rem; }
+header { padding: 1rem 0; border-bottom: 1px solid #434a51; }
+.eyebrow { color: #f4cd94; font-size: .78rem; letter-spacing: .12em; }
+h1 { font-size: clamp(2rem, 6vw, 3.7rem); line-height: 1.1; margin: .2rem 0; }
+section, details, form, article { margin-top: 1rem; }
+details, article { padding: 1rem; border: 1px solid #434a51; border-radius: .9rem; background: #1a2026; }
+summary { cursor: pointer; font-weight: 700; }
+label { display: block; margin: .75rem 0; }
+input, select, textarea, button { font: inherit; }
+input, select, textarea { display: block; width: 100%; padding: .55rem .65rem; border: 1px solid #59616a; border-radius: .55rem; }
+button { padding: .55rem .9rem; border: 0; border-radius: .55rem; background: #f4cd94; color: #101316; font-weight: 650; cursor: pointer; }
+button:disabled { opacity: .55; cursor: wait; }
+.actions { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; }
+a { color: #accff3; }
+pre, output { white-space: pre-wrap; overflow-wrap: anywhere; }
+#status { color: #f4cd94; }

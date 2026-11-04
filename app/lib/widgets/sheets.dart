@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/constants.dart';
-import '../core/external_links.dart';
 import '../core/theme.dart';
 import '../models/job.dart';
 import '../state/app_state.dart';
@@ -161,15 +160,12 @@ class _CoverLetterSheetState extends State<_CoverLetterSheet> {
     final app = context.read<AppState>();
     final job = widget.job;
     try {
-      final r = await app.api.post('/ai/cover-letter', {
-        ...app.aiExtras(),
+      final r = await app.api.ask('/ai/cover-letter', {
+        ...await app.aiExtras(),
         'job': {
+          'id': job.id,
           'title': job.title,
           'company': job.company,
-          'location': job.location,
-          'country': job.country,
-          'remote': job.remote,
-          'description': job.description,
         },
       });
       if (!mounted) return;
@@ -184,11 +180,21 @@ class _CoverLetterSheetState extends State<_CoverLetterSheet> {
   }
 
   void _addPortfolio() {
-    if (_ctrl.text.contains(portfolioUrl)) return;
+    final portfolioUrl = _portfolioUrl;
+    if (portfolioUrl == null || _ctrl.text.contains(portfolioUrl)) return;
     _ctrl.text = [
       if (_ctrl.text.trim().isNotEmpty) _ctrl.text.trim(),
-      'Portafolio de Nelson Vera: $portfolioUrl',
+      'Portafolio: $portfolioUrl',
     ].join('\n\n');
+  }
+
+  String? get _portfolioUrl {
+    final url =
+        context.read<AppState>().preferences['portfolio_url']?.toString();
+    final uri = url == null ? null : Uri.tryParse(url);
+    return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty
+        ? url
+        : null;
   }
 
   @override
@@ -233,11 +239,12 @@ class _CoverLetterSheetState extends State<_CoverLetterSheet> {
                     icon: const Icon(Icons.auto_awesome),
                     label: const Text('Generar con Ana'),
                   ),
-                  TextButton.icon(
-                    onPressed: _loading ? null : _addPortfolio,
-                    icon: const Icon(Icons.link),
-                    label: const Text('Añadir portafolio'),
-                  ),
+                  if (_portfolioUrl != null)
+                    TextButton.icon(
+                      onPressed: _loading ? null : _addPortfolio,
+                      icon: const Icon(Icons.link),
+                      label: const Text('Añadir portafolio'),
+                    ),
                 ],
               ),
               FilledButton(

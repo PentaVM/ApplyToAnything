@@ -19,7 +19,8 @@ ios/
 linux/
 macos/
 windows/
-web/
+/app/web/
+.vercel/
 
 # SO / editor
 .DS_Store

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ApplyToAnything</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/dashboard.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">ESPACIO DE POSTULACIÓN</p><h1>ApplyToAnything</h1>
+      <p>Busca vacantes y prepara postulaciones con los datos de tu cuenta.</p></header>
+    <p id="status" role="status"></p>
+    <form id="account">
+      <label>Nombre <input name="name" autocomplete="name"></label>
+      <label>Correo <input name="email" type="email" autocomplete="username" required></label>
+      <label>Contraseña <input name="password" type="password" autocomplete="current-password" required></label>
+      <div class="actions"><button value="login">Entrar</button><button value="register">Crear cuenta</button></div>
+    </form>
+    <section id="workspace" hidden>
+      <div class="actions"><strong id="who"></strong><button id="logout">Cerrar sesión</button></div>
+      <details open>
+        <summary>Proveedores de IA</summary>
+        <label>Proveedor activo <select id="provider"></select></label>
+        <div class="actions">
+          <button id="select-provider">Usar este proveedor</button>
+          <button id="pair">Generar código</button>
+          <button id="revoke">Desconectar</button>
+        </div>
+        <p id="provider-status"></p>
+        <div id="pairing" hidden>
+          <p>En el equipo donde está tu proveedor, ejecuta este comando y pega el código cuando se solicite.</p>
+          <pre id="command"></pre><output id="code"></output>
+        </div>
+        <label id="model-label" hidden>Modelo <input id="model"></label>
+        <label id="key-label" hidden>Clave del proveedor <input id="key" type="password" autocomplete="off"></label>
+      </details>
+      <details>
+        <summary>Mi perfil de búsqueda</summary>
+        <form id="profile">
+          <label>Rol <input name="role" maxlength="120"></label>
+          <label>Competencias, separadas por coma <input name="skills" maxlength="500"></label>
+          <button>Guardar perfil</button>
+        </form>
+      </details>
+      <section>
+        <h2>Vacantes</h2>
+        <form id="search"><label>Buscar por cargo <input name="q" maxlength="120"></label><button>Buscar</button></form>
+        <div id="jobs"></div>
+      </section>
+      <section>
+        <h2>Preguntar a Ana</h2>
+        <p id="job-context"></p>
+        <form id="question"><label>Pregunta sobre tu búsqueda <textarea name="question" required maxlength="2500"></textarea></label><button>Consultar</button></form>
+        <pre id="answer" aria-live="polite"></pre>
+      </section>
+      <section>
+        <div class="actions"><h2>Seguimiento</h2><button id="refresh">Actualizar</button></div>
+        <div id="applications"></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

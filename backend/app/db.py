@@ -5,10 +5,11 @@ import sqlite3
 import threading
 import time
 
-from .config import DB_PATH
+from .config import DATABASE_URL, DB_PATH, ON_VERCEL
 
 _lock = threading.RLock()  # reentrante: query()/execute() toman el lock y llaman a conn()
 _conn: sqlite3.Connection | None = None
+_postgres_ready = False
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -45,7 +46,41 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ai_connectors (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  token_hash TEXT UNIQUE NOT NULL,
+  seen_at BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY(user_id, provider)
+);
+CREATE TABLE IF NOT EXISTS ai_settings (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ai_tasks (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  connector_hash TEXT NOT NULL,
+  request TEXT NOT NULL,
+  created_at BIGINT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'queued',
+  lease TEXT,
+  lease_until BIGINT,
+  reply TEXT
+);
+CREATE INDEX IF NOT EXISTS ai_task_queue ON ai_tasks(user_id, provider, state, created_at);
+CREATE TABLE IF NOT EXISTS viewed_jobs (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  job_id TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  seen_at BIGINT NOT NULL,
+  PRIMARY KEY(user_id, job_id)
+);
 """
+
+ACTIVE_TASK_INDEX = """CREATE UNIQUE INDEX IF NOT EXISTS one_active_ai_task
+ON ai_tasks(user_id, provider, connector_hash) WHERE state IN ('queued', 'running')"""
 
 
 def conn() -> sqlite3.Connection:
@@ -55,6 +90,11 @@ def conn() -> sqlite3.Connection:
             c = sqlite3.connect(DB_PATH, check_same_thread=False)
             c.row_factory = sqlite3.Row
             c.executescript(SCHEMA)
+            columns = c.execute("PRAGMA table_info(ai_tasks)").fetchall()
+            if not any(column["name"] == "connector_hash" for column in columns):
+                c.execute("ALTER TABLE ai_tasks ADD COLUMN connector_hash TEXT")
+                c.execute("UPDATE ai_tasks SET state='failed', request='[]' WHERE state IN ('queued', 'running')")
+            c.execute(ACTIVE_TASK_INDEX)
             c.commit()
             _conn = c
     return _conn
@@ -64,16 +104,61 @@ def now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
-def query(sql: str, params=()):
+def _postgres():
+    import psycopg
+    from psycopg.rows import dict_row
+
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=8)
+
+
+def _initialize_postgres(connection):
+    global _postgres_ready
     with _lock:
-        return conn().execute(sql, params).fetchall()
+        if not _postgres_ready:
+            with connection.transaction():
+                connection.execute("SELECT pg_advisory_xact_lock(734525154)")
+                schema = SCHEMA.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+                for statement in schema.split(";"):
+                    if statement.strip():
+                        connection.execute(statement)
+                connection.execute("ALTER TABLE ai_tasks ADD COLUMN IF NOT EXISTS connector_hash TEXT")
+                connection.execute(
+                    "UPDATE ai_tasks SET state='failed', request='[]' "
+                    "WHERE connector_hash IS NULL AND state IN ('queued', 'running')"
+                )
+                connection.execute(ACTIVE_TASK_INDEX)
+            _postgres_ready = True
+
+
+def _run(sql, params, *, fetch=False, many=False):
+    if DATABASE_URL:
+        with _postgres() as connection:
+            _initialize_postgres(connection)
+            with connection.cursor() as cursor:
+                if many:
+                    cursor.executemany(sql.replace("?", "%s"), params)
+                else:
+                    cursor.execute(sql.replace("?", "%s"), params)
+                return cursor.fetchall() if fetch else cursor.rowcount
+    if ON_VERCEL:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=503, detail="Falta configurar PostgreSQL en el servidor")
+    with _lock, conn() as connection:
+        cursor = connection.executemany(sql, params) if many else connection.execute(sql, params)
+        return cursor.fetchall() if fetch else cursor.rowcount
+
+
+def query(sql: str, params=()):
+    return _run(sql, params, fetch=True)
 
 
 def execute(sql: str, params=()):
-    with _lock:
-        cur = conn().execute(sql, params)
-        conn().commit()
-        return cur
+    return _run(sql, params)
+
+
+def execute_many(sql, rows):
+    return _run(sql, rows, many=True)
 
 
 def get_jwt_secret() -> str:
@@ -81,8 +166,8 @@ def get_jwt_secret() -> str:
     if rows:
         return rows[0]["value"]
     secret = secrets.token_hex(32)
-    execute("INSERT OR IGNORE INTO meta(key, value) VALUES('jwt_secret', ?)", (secret,))
-    return secret
+    execute("INSERT INTO meta(key, value) VALUES('jwt_secret', ?) ON CONFLICT(key) DO NOTHING", (secret,))
+    return query("SELECT value FROM meta WHERE key='jwt_secret'")[0]["value"]
 
 
 def get_prefs(user_id: int) -> dict:

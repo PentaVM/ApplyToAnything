@@ -40,7 +40,7 @@ class AppState extends ChangeNotifier {
     token = p.getString(_kToken);
     backendUrl = p.getString(_kBackend) ?? backendUrl;
     omniModel = p.getString(_kModel) ?? '';
-    omniKey = p.getString(_kKey) ?? '';
+    await p.remove(_kKey);
     try {
       preferences = Map<String, dynamic>.from(
           jsonDecode(p.getString(_kPrefs) ?? '{}') as Map);
@@ -98,6 +98,7 @@ class AppState extends ChangeNotifier {
     await p.remove(_kPrefs);
     token = null;
     user = null;
+    omniKey = '';
     preferences = {};
     notifyListeners();
   }
@@ -152,13 +153,13 @@ class AppState extends ChangeNotifier {
     omniKey = key.trim();
     final p = await SharedPreferences.getInstance();
     await p.setString(_kModel, omniModel);
-    await p.setString(_kKey, omniKey);
     notifyListeners();
   }
 
-  /// Campos extra que la app añade a /ai/* para usar SU cuenta de OmniRoute.
-  Map<String, dynamic> aiExtras() => {
-        if (omniModel.isNotEmpty) 'model': omniModel,
-        if (omniKey.isNotEmpty) 'api_key': omniKey,
-      };
+  Future<Map<String, dynamic>> aiExtras() async {
+    if (omniKey.isEmpty) return {};
+    final data = await api.get('/ai/connectors');
+    if (data['selected'] != 'api_key') return {};
+    return {'model': omniModel, 'api_key': omniKey};
+  }
 }

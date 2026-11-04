@@ -7,12 +7,13 @@ import '../core/theme.dart';
 import '../state/app_state.dart';
 
 class _Msg {
-  _Msg(this.role, this.text);
+  _Msg(this.role, this.text, {this.includeInHistory = true});
   final String role;
   final String text;
+  final bool includeInHistory;
 }
 
-/// Chat de onboarding con Ana, la asesora IA (vía OmniRoute, gratis).
+/// Chat de búsqueda con Ana y el proveedor elegido por la cuenta.
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -21,11 +22,13 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final List<_Msg> _msgs = [];
+  final List<_Msg> _msgs = [
+    _Msg('assistant', 'Cuéntame qué trabajo estás buscando.',
+        includeInHistory: false),
+  ];
   final TextEditingController _ctrl = TextEditingController();
   final ScrollController _scroll = ScrollController();
   bool _sending = false;
-  bool _started = false;
 
   static const _quickReplies = [
     'Busco trabajo remoto',
@@ -34,17 +37,6 @@ class _ChatScreenState extends State<ChatScreen> {
     'Tengo 2 años de experiencia',
     'Busco empleo en España y México',
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_started) {
-        _started = true;
-        _send('Hola, quiero empezar a buscar trabajo');
-      }
-    });
-  }
 
   @override
   void dispose() {
@@ -71,20 +63,23 @@ class _ChatScreenState extends State<ChatScreen> {
     _ctrl.clear();
     setState(() {
       _msgs.add(_Msg('user', body));
-      _msgs.add(_Msg('assistant', '…'));
+      _msgs.add(_Msg('assistant', '…', includeInHistory: false));
       _sending = true;
     });
     _scrollDown();
 
     final app = context.read<AppState>();
-    final history = [
-      for (final m in _msgs)
-        if (m.text != '…') {'role': m.role, 'content': m.text},
-    ];
+    final history = _msgs.reversed
+        .where((m) => m.includeInHistory)
+        .take(10)
+        .toList()
+        .reversed
+        .map((m) => {'role': m.role, 'content': m.text})
+        .toList();
 
     try {
-      final r = await app.api.post('/ai/chat', {
-        ...app.aiExtras(),
+      final r = await app.api.ask('/ai/chat', {
+        ...await app.aiExtras(),
         'messages': history,
       });
       final reply = (r['reply'] ?? 'Sin respuesta del modelo.').toString();
@@ -98,8 +93,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       setState(() {
         _msgs.removeLast();
-        _msgs.add(_Msg('assistant', '⚠️ $e\n\nRevisa que el backend y '
-            'OmniRoute estén corriendo (Ajustes → Probar conexión).'));
+        _msgs.add(_Msg(
+            'assistant', '$e\n\nRevisa el estado del proveedor en Conexiones.',
+            includeInHistory: false));
       });
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -109,21 +105,45 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// Si Ana emite PROFILE_JSON, convierte la respuesta en filtros de búsqueda.
   void _maybeApplyProfile(String reply) {
-    final m =
-        RegExp(r'PROFILE_JSON\s*[:\s]*(\{[\s\S]*?\})').firstMatch(reply);
+    final m = RegExp(r'PROFILE_JSON\s*[:\s]*(\{[\s\S]*?\})').firstMatch(reply);
     if (m == null) return;
     try {
-      final prefs = Map<String, dynamic>.from(
-          jsonDecode(m.group(1)!) as Map);
-      final app = context.read<AppState>();
-      app.setLocalPreferences(prefs);
-      app.savePreferences(prefs).catchError((_) {});
+      final prefs = Map<String, dynamic>.from(jsonDecode(m.group(1)!) as Map);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                '✅ Perfil de búsqueda actualizado. ¡Ve a la pestaña Empleos!'),
-            duration: Duration(seconds: 4),
+          SnackBar(
+            content:
+                const Text('Ana propuso actualizar tus filtros de búsqueda.'),
+            action: SnackBarAction(
+                label: 'Guardar filtros',
+                onPressed: () async {
+                  const fields = [
+                    'role',
+                    'seniority',
+                    'countries',
+                    'modality',
+                    'remote_only',
+                    'salary_min',
+                    'currency',
+                    'skills',
+                    'languages',
+                    'keywords'
+                  ];
+                  try {
+                    await context.read<AppState>().savePreferences({
+                      for (final field in fields)
+                        if (prefs.containsKey(field)) field: prefs[field],
+                    });
+                  } catch (_) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                                Text('No se pudieron guardar los filtros.')),
+                      );
+                    }
+                  }
+                }),
           ),
         );
       }
@@ -141,7 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Text('Ana · Asesora IA',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            Text('vía OmniRoute (gratis)',
+            Text('Tu búsqueda de empleo',
                 style: TextStyle(fontSize: 11, color: Colors.white38)),
           ],
         ),
@@ -149,12 +169,14 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
             tooltip: 'Reiniciar chat',
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: _msgs.isEmpty
+            onPressed: _msgs.length <= 1 || _sending
                 ? null
                 : () => setState(() {
-                      _msgs.clear();
-                      _started = true;
-                      _send('Hola, quiero empezar de cero');
+                      _msgs
+                        ..clear()
+                        ..add(_Msg(
+                            'assistant', 'Cuéntame qué trabajo estás buscando.',
+                            includeInHistory: false));
                     }),
           ),
         ],
@@ -165,8 +187,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Container(
               width: double.infinity,
               margin: const EdgeInsets.fromLTRB(14, 6, 14, 0),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: AppTheme.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
@@ -207,8 +228,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     .map((q) => Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ActionChip(
-                            label: Text(q,
-                                style: const TextStyle(fontSize: 12)),
+                            label:
+                                Text(q, style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppTheme.surface,
                             side: const BorderSide(color: Colors.white24),
                             onPressed: _sending ? null : () => _send(q),
@@ -267,10 +288,12 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.78),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
         decoration: BoxDecoration(
-          color: isUser ? AppTheme.accent.withValues(alpha: 0.9) : AppTheme.surface,
+          color: isUser
+              ? AppTheme.accent.withValues(alpha: 0.9)
+              : AppTheme.surface,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18),
             topRight: const Radius.circular(18),

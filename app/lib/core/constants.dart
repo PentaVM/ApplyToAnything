@@ -3,7 +3,10 @@ class AppConstants {
 
   /// URL del backend. 10.0.2.2 = localhost del PC desde el emulador Android.
   /// En dispositivo físico usa la IP LAN de tu PC, ej. http://192.168.1.10:8000
-  static const String defaultBackendUrl = 'http://10.0.2.2:8000';
+  static const String defaultBackendUrl = String.fromEnvironment(
+    'ATA_BACKEND_URL',
+    defaultValue: 'http://10.0.2.2:8000',
+  );
 
   /// OmniRoute por defecto (gateway de IA gratuito que corre en tu PC).
   static const String defaultOmniBase = 'http://localhost:20128/v1';
@@ -43,15 +46,31 @@ class AppConstants {
   ];
 
   static const List<String> modalities = [
-    'Cualquiera', 'Remoto', 'Presencial', 'Híbrido',
+    'Cualquiera',
+    'Remoto',
+    'Presencial',
+    'Híbrido',
   ];
 
   static const List<String> seniorities = [
-    'Sin experiencia', 'Junior', 'Semi-senior', 'Senior', 'Lead / Manager',
+    'Sin experiencia',
+    'Junior',
+    'Semi-senior',
+    'Senior',
+    'Lead / Manager',
   ];
 
   static const List<String> currencies = [
-    'USD', 'EUR', 'MXN', 'COP', 'ARS', 'CLP', 'PEN', 'BRL', 'GBP', 'CAD',
+    'USD',
+    'EUR',
+    'MXN',
+    'COP',
+    'ARS',
+    'CLP',
+    'PEN',
+    'BRL',
+    'GBP',
+    'CAD',
   ];
 
   static String countryName(String code) {

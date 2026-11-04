@@ -15,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _role;
+  late final TextEditingController _portfolio;
   late final TextEditingController _skillCtrl;
   late final TextEditingController _salaryCtrl;
   late final Set<String> _countries;
@@ -31,6 +32,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     final p = context.read<AppState>().preferences;
     _role = TextEditingController(text: (p['role'] ?? '').toString());
+    _portfolio =
+        TextEditingController(text: (p['portfolio_url'] ?? '').toString());
     _skillCtrl = TextEditingController();
     _salaryCtrl =
         TextEditingController(text: (p['salary_min'] ?? '').toString());
@@ -57,6 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _role.dispose();
+    _portfolio.dispose();
     _skillCtrl.dispose();
     _salaryCtrl.dispose();
     super.dispose();
@@ -82,6 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await app.savePreferences({
         'role': _role.text.trim(),
+        'portfolio_url': _portfolio.text.trim(),
         'skills': _skills,
         'countries': _countries.toList(),
         'modality': _modality,
@@ -164,6 +169,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onChanged: (_) => _touch(),
             decoration: const InputDecoration(
                 hintText: 'Ej. desarrollador web, contador…'),
+          ),
+          const SizedBox(height: 18),
+          _section('Tu portafolio (opcional)'),
+          TextField(
+            controller: _portfolio,
+            onChanged: (_) => _touch(),
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(hintText: 'https://…'),
           ),
           const SizedBox(height: 18),
           _section('Skills (para buscar ofertas)'),

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
 import '../state/app_state.dart';
-import 'portfolio_screen.dart';
+import 'connections_screen.dart';
 import 'settings_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -148,10 +148,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const PortfolioScreen()),
+                            builder: (_) => const ConnectionsScreen()),
                       ),
                       icon: const Icon(Icons.badge_outlined),
-                      label: const Text('Portafolio'),
+                      label: const Text('Abrir panel web'),
                     ),
                   ],
                 ),
