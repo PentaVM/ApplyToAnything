@@ -50,6 +50,7 @@ async def jobs_search(
         remote_only=(remote == "only"),
         page=page,
         sources=srcs,
+        match_title=bool(q.strip()),
     )
     await run_in_threadpool(remember_jobs, user["id"], jobs[:60])
     return {
