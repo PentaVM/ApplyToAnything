@@ -1,186 +1,51 @@
-# ApplyToAnything 🧡📱
+# ApplyToAnything
 
-[![CI](https://github.com/PentaVM/ApplyToAnything/actions/workflows/ci.yml/badge.svg)](https://github.com/PentaVM/ApplyToAnything/actions/workflows/ci.yml)
+Busca vacantes y prepara postulaciones desde Android o desde el navegador con la misma cuenta. La web y el APK consumen la API de FastAPI en backend/. Cada cuenta tiene su propio perfil, seguimiento y selección de IA.
 
-**Busca empleo haciendo swipe (estilo Tinder), habla con una IA asesora gratuita y postula
-con carta de presentación generada automáticamente.** Clon libre de herramientas tipo
-aiAutoApply, hecho en **Flutter (Android)** + **backend FastAPI** + **OmniRoute** como
-gateway de IA **100% gratuito**.
+## Iniciar
 
-Descarga el APK de Android desde [GitHub Releases](https://github.com/PentaVM/ApplyToAnything/releases).
-En el inicio de la app puedes abrir **Portafolio** sin cuenta y entrar a **Configurar conexión**
-para apuntar a tu backend antes de registrarte. Usa el backend de la misma versión para
-guardar confirmaciones de envío.
+En Windows ejecuta backend\run.bat. En macOS o Linux ejecuta bash backend/run.sh. Abre http://localhost:8000 para usar la web. Desde Android, configura el mismo servidor. El emulador usa http://10.0.2.2:8000. Un APK para producción puede incluir la URL HTTPS con ATA_BACKEND_URL.
 
-```
- ┌─────────────────────────┐        ┌──────────────────────────┐        ┌─────────────────────┐
- │  App Flutter (Android)  │  HTTP  │   Backend FastAPI local  │        │ OmniRoute (gratis)  │
- │  · Chat con Ana (IA)    │ ─────► │  · Auth JWT + SQLite     │ ─────► │ /v1/chat/completions│
- │  · Mazo estilo Tinder   │        │  · Búsqueda determinista │        │ (gateway local de   │
- │  · Postulaciones        │        │    en bolsas públicas    │        │  modelos LLM)       │
- │  · Perfil y ajustes     │        │  · Proxy IA + cartas     │        └─────────────────────┘
- └─────────────────────────┘        └────────────┬─────────────┘
-                                                 │  consultas en paralelo
-                          ┌──────────┬────────────┼─────────────┬──────────┐
-                          ▼          ▼            ▼             ▼          ▼
-                      Remotive   Arbeitnow    RemoteOK      Adzuna*    Jooble*
-                                                            (*con clave gratis opcional)
-```
+La IA prepara respuestas y cartas. La persona completa la postulación en la página del empleador y confirma el envío en Seguimiento.
 
-## ✨ Funciones
+## Proveedores de IA
 
-- **Cuentas**: registro e inicio de sesión (correo + contraseña, JWT, SQLite en tu propio backend).
-- **Chat con Ana, la asesora IA**: te entrevista paso a paso (rol, seniority, países, modalidad,
-  salario, skills, idiomas) y con tu respuesta construye un `PROFILE_JSON` que la app convierte
-  automáticamente en filtros de búsqueda. El prompt completo vive en [`system.md`](system.md).
-- **IA gratis vía OmniRoute**: la app habla con Ana a través de OmniRoute
-  (`http://localhost:20128/v1`, OpenAI-compatible). Tú eliges el proveedor/modelo gratuito en el
-  panel de OmniRoute; la app nunca necesita claves de pago.
-- **Búsqueda determinista multi-país**: el backend agrega ofertas de Remotive, Arbeitnow y
-  RemoteOK (sin claves, funcionan al instante) + Adzuna y Jooble por país (claves gratuitas
-  opcionales). Deduplicación, orden por fecha y filtrado remoto/por país.
-- **Interfaz tipo Tinder**: mazo de tarjetas con drag, rotación y sellos animados.
-  - Desliza a la **derecha** → prepara la postulación con una carta opcional, manual o
-    generada por Ana. Puedes añadir el enlace al portafolio y guardar el borrador antes de
-    abrir la oferta en el navegador.
-  - Desliza **arriba** → guardas la oferta (*Guardadas*).
-  - Desliza a la **izquierda** → la descarta (no vuelve a aparecer).
-- **Seguimiento**: abre ofertas, copia cartas y confirma el envío tras completar el formulario externo.
-- **Portafolio**: perfil público de Nelson Vera, ocho proyectos con resultados y tecnologías,
-  competencias y principios. La copia incluida se puede leer sin conexión.
-- **Perfil editable** manualmente (por si prefieres no usar el chat) y **Ajustes** con prueba de
-  conexión y visor del `system.md`.
+Abre Conexiones en Android o Proveedores de IA en la web. Selecciona el proveedor, guarda la selección y, si usa un equipo externo, genera un código. Desde backend/ en ese equipo ejecuta, por ejemplo:
 
-## 🚀 Puesta en marcha (5 minutos)
+    python connector.py codex --server https://TU-PROYECTO.vercel.app
 
-### 1. Arranca OmniRoute (IA gratuita)
+El conector pide el código sin mostrarlo. Para servicios sin terminal, usa ATA_CONNECTOR_TOKEN como secreto del proceso y ATA_SERVER_URL como URL. La conexión sale del equipo hacia el backend. Cada código pertenece a una cuenta y a un proveedor. Puedes revocarlo desde la app. Las credenciales del proveedor se configuran en el equipo que lo ejecuta.
 
-```bash
-npm install -g omniroute
-omniroute            # gateway en http://localhost:20128
-```
+| Modo | Configuración en el equipo |
+| --- | --- |
+| Codex | Inicia sesión con ChatGPT en el CLI oficial. Comprueba con python connector.py codex --probe. |
+| Claude Code | Inicia sesión en el CLI oficial en el equipo de la cuenta y usa el adaptador allí. Comprueba con python connector.py claude --probe. Las integraciones que ofrecen autenticación de terceros en nombre de otros usuarios deben usar las vías autorizadas de Anthropic. |
+| Antigravity | Inicia sesión con el CLI agy. Configura permissions.deny en ~/.gemini/antigravity-cli/settings.json con command(*), read_file(*), write_file(*), read_url(*), execute_url(*) y mcp(*). Comprueba con python connector.py antigravity --probe. |
+| OmniRoute en tu equipo | Configura OmniRoute y elige un modelo gratuito. Define ATA_PROVIDER_MODEL. ATA_PROVIDER_URL usa http://127.0.0.1:20128/v1 por defecto. Si el gateway permite acceso sin clave, omite ATA_PROVIDER_API_KEY. |
+| API en tu equipo | Define ATA_PROVIDER_URL, ATA_PROVIDER_MODEL y ATA_PROVIDER_API_KEY para un endpoint compatible con Chat Completions. La clave queda en ese equipo. |
+| Clave API directa | El backend usa ATA_API_BASE_URL y el modelo por defecto ATA_API_MODEL si está configurado. Introduce tu clave y modelo en la web o en Ajustes de Android. El valor de la clave dura la sesión de la interfaz. |
+| OmniRoute del servidor | Configura OMNIROUTE_BASE_URL y OMNIROUTE_MODEL. OMNIROUTE_API_KEY es opcional según el gateway. En producción usa un gateway administrado y accesible al servidor, o elige el conector de tu equipo. |
+| Personalizado | Define ATA_PROVIDER_COMMAND como un arreglo JSON con el ejecutable y argumentos de confianza. Recibe el contexto por stdin y devuelve texto por stdout. |
 
-Abre `http://localhost:20128`, crea una cuenta local y **activa uno o varios proveedores
-gratuitos** (GLM, DeepSeek, Gemini, etc.). Por defecto no requiere API key
-(`REQUIRE_API_KEY=false`). Modelo usado por defecto por el backend: `glm/glm-4.7`
-(cámbialo con `OMNIROUTE_MODEL` o desde Ajustes en la app).
+El modo sin clave de OmniRoute depende de un modelo gratuito disponible y de la configuración del gateway. Usa el gateway sin clave dentro de una red privada.
 
-### 2. Arranca el backend
+El mismo conector puede ejecutarse en una VM o en un contenedor. Desde backend/:
 
-Windows:
-```bat
-backend\run.bat
-```
-Linux/macOS/Git Bash:
-```bash
-cd backend && chmod +x run.sh && ./run.sh
-```
-Esto crea un venv, instala FastAPI/uvicorn/httpx/PyJWT y levanta la API en
-`http://localhost:8000` (docs interactivas en `/docs`). La base SQLite se crea sola.
+    docker build -f Dockerfile.connector -t ata-connector .
+    docker run --rm --env-file /ruta/privada/conector.env ata-connector omniroute
 
-Opcional (más resultados por país): crea `backend/.env` con claves gratuitas:
-```
-ADZUNA_APP_ID=xxx
-ADZUNA_APP_KEY=xxx     # https://developer.adzuna.com (free tier)
-JOOBLE_API_KEY=xxx     # https://jooble.org/api/about (free)
-```
+Para usar una CLI dentro de un contenedor, instálala y autentícala con el flujo oficial en ese entorno. La imagen base del conector incluye el cliente HTTP.
 
-### 3. Compila la app Flutter
+## Vercel
 
-```bash
-cd app
-flutter create . --platforms=android --org com.applytoanything --project-name apply_to_anything
-python ../scripts/configure_android.py
-flutter pub get
-flutter run          # o: flutter build apk --release
-```
+Importa PentaVM/ApplyToAnything y elige backend como Root Directory. El proyecto detecta FastAPI en app/main.py. Configura ATA_DATABASE_URL con una conexión de PostgreSQL, o usa POSTGRES_URL proporcionada por una integración de Vercel. En Vercel la aplicación requiere PostgreSQL. En desarrollo local conserva compatibilidad con SQLite.
 
-El script configura el permiso de Internet y el HTTP necesario para conectar con el backend local.
-GitHub Actions ejecuta el análisis, las pruebas y la compilación. Los artefactos de CI
-usan una firma de desarrollo. El APK de Releases se firma con la clave de la app para
-instalación directa.
+Después del despliegue, verifica GET /health y crea la cuenta en la web o en Android. Usa la misma URL y el mismo correo en ambos. Para compilar Android con esa URL, define la variable ATA_BACKEND_URL del repositorio para CI o usa:
 
-### 4. Conecta la app al backend
+    flutter build apk --release --dart-define=ATA_BACKEND_URL=https://TU-PROYECTO.vercel.app
 
-- **Emulador Android**: la URL por defecto ya es `http://10.0.2.2:8000` (= localhost de tu PC).
-- **Dispositivo físico**: abre **Configurar conexión** en la pantalla inicial y pon
-  `http://IP-DE-TU-PC:8000` (misma red WiFi; el `run.bat` escucha en 0.0.0.0).
-  Pulsa **Probar conexión**, luego **Guardar**.
+Si vienes de un backend SQLite local, sus cuentas y datos siguen en ese archivo. La base de Vercel arranca independiente.
 
-### 5. Úsalo
+## Verificación
 
-1. **Crear cuenta** (se guarda en tu backend local).
-2. Pestaña **Ana IA**: responde sus preguntas; al final guardará tu perfil (`PROFILE_JSON`).
-3. Pestaña **Empleos**: desliza a la derecha para preparar la carta y abrir la oferta.
-4. Pestaña **Seguimiento → Pendientes**: copia tu carta y confirma el envío cuando hayas
-   terminado en el sitio de la oferta.
-
-## 🔌 API del backend
-
-| Método | Ruta                    | Descripción                                          |
-|--------|-------------------------|------------------------------------------------------|
-| POST   | `/auth/register`        | Crea cuenta → `{token, user}`                        |
-| POST   | `/auth/login`           | Login → `{token, user}`                              |
-| GET    | `/me`                   | Usuario + preferencias                               |
-| PUT    | `/me/preferences`       | Guarda perfil de búsqueda                            |
-| GET    | `/jobs/search`          | Agrega ofertas (`q`, `countries=xx,es`, `remote=only`, `page`) |
-| POST   | `/ai/chat`              | Chat con Ana (system.md + perfil → OmniRoute)        |
-| POST   | `/ai/cover-letter`      | Carta de presentación para una oferta                |
-| GET    | `/applications`         | Lista postulaciones (`?status=applied`)              |
-| POST   | `/applications`         | Registra/actualiza (liked / applied / skipped)       |
-| PATCH  | `/applications/{id}`    | Cambia estado                                        |
-| DELETE | `/applications/{id}`    | Elimina                                              |
-| GET    | `/system-prompt`        | Devuelve el system.md actual                         |
-| GET    | `/health`               | Estado + config OmniRoute                            |
-
-Variables de entorno del backend (o `backend/.env`): `OMNIROUTE_BASE_URL`,
-`OMNIROUTE_MODEL`, `OMNIROUTE_API_KEY`, `ADZUNA_APP_ID/KEY`, `JOOBLE_API_KEY`,
-`ATA_DB_PATH`, `ATA_JWT_EXPIRE_DAYS`, `ATA_SYSTEM_MD_PATH`.
-
-## 🧠 Cómo funciona el «cerebro»
-
-1. `system.md` define a **Ana**: tono, flujo de entrevista (máx. 8 preguntas, una por mensaje)
-   y el contrato de salida `PROFILE_JSON` con países en ISO-2 y keywords de búsqueda.
-2. La app detecta ese bloque en el chat, lo parsea y lo envía a `PUT /me/preferences`.
-3. La pestaña Empleos consulta `/jobs/search` con esos filtros; el backend lanza todas las
-   consultas **en paralelo** (`asyncio.gather`), limpia HTML, deduplica y pagina.
-4. Si eliges generar la carta, `/ai/cover-letter` usa tu perfil para redactarla en el idioma de
-   la oferta. Puedes editarla, guardar el borrador y abrir la oferta real.
-
-## ⚖️ Notas
-
-- La búsqueda usa **APIs públicas y documentadas** de cada bolsa de empleo. Respeta sus
-  términos y límites de uso.
-- El envío se hace en la página original. Una vez enviado, puedes confirmarlo en Seguimiento.
-- Proyecto educativo bajo licencia MIT. No está afiliado a aiAutoApply ni a las bolsas citadas.
-
-## 🛠️ Estructura
-
-```
-ApplyToAnything/
-├── system.md                  # Prompt canónico de la IA (Ana)
-├── backend/
-│   ├── app/
-│   │   ├── main.py            # FastAPI + rutas + CORS
-│   │   ├── config.py          # .env, OmniRoute, claves
-│   │   ├── db.py              # SQLite (usuarios, prefs, postulaciones)
-│   │   ├── security.py        # PBKDF2 + JWT
-│   │   ├── providers.py       # Remotive/Arbeitnow/RemoteOK/Adzuna/Jooble
-│   │   ├── omniroute.py       # Cliente /v1/chat/completions
-│   │   └── routers/           # auth · jobs · ai · applications
-│   ├── run.bat / run.sh
-│   └── requirements.txt
-├── app/                       # Flutter
-│   ├── assets/system.md       # Copia del prompt (fallback offline)
-│   └── lib/
-│       ├── core/              # api client · tema · constantes (países…)
-│       ├── models/            # Job · User · Application
-│       ├── state/app_state.dart
-│       ├── widgets/           # SwipeDeck (Tinder) · JobCard · sheets
-│       └── screens/           # auth · home · swipe · chat · aplicaciones · perfil · ajustes
-└── .github/workflows/ci.yml   # CI: pruebas del backend y Flutter + APK instalable
-```
-
----
-
-Hecho con 💜 — MIT License.
+Ejecuta python tests_smoke.py y python tests_connectors.py desde backend/. CI ejecuta el flujo de conectores con SQLite y PostgreSQL, además de analizar y compilar Flutter.

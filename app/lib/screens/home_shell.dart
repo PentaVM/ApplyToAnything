@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'applications_screen.dart';
 import 'chat_screen.dart';
-import 'portfolio_screen.dart';
+import 'connections_screen.dart';
 import 'profile_screen.dart';
 import 'swipe_screen.dart';
 
@@ -29,7 +29,7 @@ class _HomeShellState extends State<HomeShell> {
           else
             const SizedBox.shrink(),
           const ProfileScreen(),
-          if (_tab == 4) const PortfolioScreen() else const SizedBox.shrink(),
+          if (_tab == 4) const ConnectionsScreen() else const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -57,9 +57,9 @@ class _HomeShellState extends State<HomeShell> {
             label: 'Perfil',
           ),
           NavigationDestination(
-            icon: Icon(Icons.badge_outlined),
-            selectedIcon: Icon(Icons.badge_rounded),
-            label: 'Portafolio',
+            icon: Icon(Icons.link_outlined),
+            selectedIcon: Icon(Icons.link),
+            label: 'Conexiones',
           ),
         ],
       ),

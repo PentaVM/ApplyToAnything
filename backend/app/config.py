@@ -18,6 +18,10 @@ if _env_file.is_file():
             os.environ.setdefault(k.strip(), v.strip())
 
 DB_PATH = os.environ.get("ATA_DB_PATH", str(BACKEND_DIR / "ata.db"))
+DATABASE_URL = os.environ.get("ATA_DATABASE_URL") or os.environ.get("POSTGRES_URL", "")
+ON_VERCEL = os.environ.get("VERCEL") == "1"
+API_BASE_URL = os.environ.get("ATA_API_BASE_URL", "https://api.openai.com/v1")
+API_MODEL = os.environ.get("ATA_API_MODEL", "")
 JWT_EXPIRE_DAYS = int(os.environ.get("ATA_JWT_EXPIRE_DAYS", "30"))
 
 # --- OmniRoute (gateway de IA gratuito, OpenAI-compatible) -------------------
@@ -49,6 +53,7 @@ def system_prompt() -> str:
     candidates = []
     if env_path:
         candidates.append(Path(env_path))
+    candidates.append(Path(__file__).with_name("system.md"))
     candidates.append(REPO_DIR / "system.md")
     candidates.append(BACKEND_DIR / "system.md")
     for c in candidates:

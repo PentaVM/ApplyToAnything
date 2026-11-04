@@ -50,15 +50,14 @@ def register(body: Credentials):
         raise HTTPException(status_code=400, detail="Correo electrónico no válido")
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
-    if query("SELECT id FROM users WHERE email = ?", (email,)):
-        raise HTTPException(status_code=409, detail="Ese correo ya está registrado")
-
-    cur = execute(
-        "INSERT INTO users(email, password_hash, name, created_at) VALUES(?,?,?,?)",
+    rows = query(
+        "INSERT INTO users(email, password_hash, name, created_at) VALUES(?,?,?,?) "
+        "ON CONFLICT(email) DO NOTHING RETURNING id",
         (email, hash_password(body.password), body.name.strip()[:80], now()),
     )
-    uid = cur.lastrowid
-    save_prefs(uid, {})
+    if not rows:
+        raise HTTPException(status_code=409, detail="Ese correo ya está registrado")
+    uid = rows[0]["id"]
     token = create_token(uid, email)
     return {"token": token, "user": {"id": uid, "email": email, "name": body.name.strip()[:80]}}
 

@@ -49,9 +49,9 @@ rows = db.query("SELECT * FROM applications WHERE user_id=1")
 assert len(rows) == 1, "upsert no deduplicó"
 assert rows[0]["status"] == "liked", "upsert no actualizó el estado"
 cur = db.execute("UPDATE applications SET status='applied' WHERE id=1 AND user_id=1")
-assert cur.rowcount == 1, "patch fallo"
+assert cur == 1, "patch fallo"
 cur = db.execute("DELETE FROM applications WHERE id=1 AND user_id=1")
-assert cur.rowcount == 1, "delete fallo"
+assert cur == 1, "delete fallo"
 print("2) SQL de postulaciones OK (upsert, patch, delete)")
 
 # --- 3) Password + JWT -------------------------------------------------------

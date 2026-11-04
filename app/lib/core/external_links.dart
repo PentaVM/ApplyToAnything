@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const portfolioUrl = 'https://trabajo-sigma.vercel.app/';
-
 Future<void> openExternalLink(BuildContext context, String url) async {
   final uri = Uri.tryParse(url);
   if (uri != null &&

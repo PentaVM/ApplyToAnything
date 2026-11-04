@@ -19,11 +19,11 @@ void main() {
     expect(find.text('Tu próximo trabajo está a un swipe'), findsOneWidget);
     expect(find.text('Configurar conexión'), findsOneWidget);
 
-    await tester.tap(find.text('Portafolio'));
+    await tester.tap(find.text('Abrir panel web'));
     await tester.pumpAndSettle();
-    expect(find.text('Nelson Vera'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('EstadoFlow'), 180);
-    expect(find.text('EstadoFlow'), findsOneWidget);
+    expect(find.text('Conexiones de IA'), findsOneWidget);
+    expect(find.text('Usa la misma cuenta en la web y en Android.'),
+        findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

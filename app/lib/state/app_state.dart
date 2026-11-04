@@ -40,7 +40,7 @@ class AppState extends ChangeNotifier {
     token = p.getString(_kToken);
     backendUrl = p.getString(_kBackend) ?? backendUrl;
     omniModel = p.getString(_kModel) ?? '';
-    omniKey = p.getString(_kKey) ?? '';
+    await p.remove(_kKey);
     try {
       preferences = Map<String, dynamic>.from(
           jsonDecode(p.getString(_kPrefs) ?? '{}') as Map);
@@ -98,6 +98,7 @@ class AppState extends ChangeNotifier {
     await p.remove(_kPrefs);
     token = null;
     user = null;
+    omniKey = '';
     preferences = {};
     notifyListeners();
   }
@@ -152,7 +153,6 @@ class AppState extends ChangeNotifier {
     omniKey = key.trim();
     final p = await SharedPreferences.getInstance();
     await p.setString(_kModel, omniModel);
-    await p.setString(_kKey, omniKey);
     notifyListeners();
   }
 

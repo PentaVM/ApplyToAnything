@@ -1,11 +1,26 @@
 """Búsqueda determinista de ofertas (agrega proveedores públicos)."""
-from fastapi import APIRouter, Depends, Query
+import json
+import time
 
-from ..db import get_prefs
+from fastapi import APIRouter, Depends, Query
+from starlette.concurrency import run_in_threadpool
+
+from ..db import execute, execute_many, get_prefs
 from ..providers import search_all
 from .auth import current_user
 
 router = APIRouter()
+
+
+def remember_jobs(user_id, jobs):
+    now = int(time.time())
+    execute("DELETE FROM viewed_jobs WHERE user_id=? AND seen_at < ?", (user_id, now - 86400))
+    if jobs:
+        execute_many(
+            """INSERT INTO viewed_jobs(user_id, job_id, payload, seen_at) VALUES(?,?,?,?)
+               ON CONFLICT(user_id, job_id) DO UPDATE SET payload=excluded.payload, seen_at=excluded.seen_at""",
+            [(user_id, job["id"], json.dumps(job, ensure_ascii=False), now) for job in jobs],
+        )
 
 
 @router.get("/jobs/search")
@@ -35,6 +50,7 @@ async def jobs_search(
         page=page,
         sources=srcs,
     )
+    await run_in_threadpool(remember_jobs, user["id"], jobs[:60])
     return {
         "jobs": jobs[:60],
         "count": len(jobs[:60]),

@@ -84,7 +84,7 @@ def update_status(app_id: int, body: StatusBody, user=Depends(current_user)):
            WHERE id = ? AND user_id = ?""",
         (body.status, body.confirmed_submission, body.status, app_id, user["id"]),
     )
-    if cur.rowcount == 0:
+    if cur == 0:
         raise HTTPException(status_code=404, detail="Postulación no encontrada")
     return {"ok": True}
 
@@ -95,6 +95,6 @@ def delete_application(app_id: int, user=Depends(current_user)):
         "DELETE FROM applications WHERE id = ? AND user_id = ?",
         (app_id, user["id"]),
     )
-    if cur.rowcount == 0:
+    if cur == 0:
         raise HTTPException(status_code=404, detail="Postulación no encontrada")
     return {"ok": True}

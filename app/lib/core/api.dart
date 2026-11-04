@@ -19,14 +19,16 @@ class ApiClient {
   String? token;
 
   Uri _uri(String path, [Map<String, String>? query]) {
-    final base =
-        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final base = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
     return Uri.parse('$base$path').replace(queryParameters: query);
   }
 
   Map<String, String> _headers() => {
         'Content-Type': 'application/json',
-        if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
+        if (token != null && token!.isNotEmpty)
+          'Authorization': 'Bearer $token',
       };
 
   Future<dynamic> _send(Future<http.Response> Function() fn) async {
@@ -47,7 +49,9 @@ class ApiClient {
 
     if (r.statusCode >= 400) {
       var msg = 'Error ${r.statusCode}';
-      if (body is Map && body['detail'] != null) msg = body['detail'].toString();
+      if (body is Map && body['detail'] != null) {
+        msg = body['detail'].toString();
+      }
       throw ApiException(msg);
     }
     return body;
@@ -56,14 +60,38 @@ class ApiClient {
   Future<dynamic> get(String path, [Map<String, String>? query]) =>
       _send(() => http.get(_uri(path, query), headers: _headers()));
 
-  Future<dynamic> post(String path, [Map<String, dynamic>? body]) =>
-      _send(() => http.post(_uri(path), headers: _headers(), body: jsonEncode(body ?? {})));
+  Future<dynamic> post(String path, [Map<String, dynamic>? body]) => _send(() =>
+      http.post(_uri(path), headers: _headers(), body: jsonEncode(body ?? {})));
 
-  Future<dynamic> put(String path, [Map<String, dynamic>? body]) =>
-      _send(() => http.put(_uri(path), headers: _headers(), body: jsonEncode(body ?? {})));
+  Future<Map<String, dynamic>> ask(
+      String path, Map<String, dynamic> body) async {
+    var result = await post(path, body) as Map<String, dynamic>;
+    final task = result['task_id'];
+    if (task is String) {
+      final deadline = DateTime.now().add(const Duration(minutes: 3));
+      while (DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(seconds: 3));
+        result = await get('/ai/tasks/${Uri.encodeComponent(task)}')
+            .timeout(const Duration(seconds: 12)) as Map<String, dynamic>;
+        if (result['state'] == 'failed') {
+          throw ApiException(
+              result['detail']?.toString() ?? 'Falló el proveedor.');
+        }
+        if (result['state'] == 'done') break;
+      }
+    }
+    if (result['reply'] is! String) {
+      throw ApiException('El proveedor tardó demasiado en responder.');
+    }
+    return result;
+  }
+
+  Future<dynamic> put(String path, [Map<String, dynamic>? body]) => _send(() =>
+      http.put(_uri(path), headers: _headers(), body: jsonEncode(body ?? {})));
 
   Future<dynamic> patch(String path, [Map<String, dynamic>? body]) =>
-      _send(() => http.patch(_uri(path), headers: _headers(), body: jsonEncode(body ?? {})));
+      _send(() => http.patch(_uri(path),
+          headers: _headers(), body: jsonEncode(body ?? {})));
 
   Future<dynamic> delete(String path) =>
       _send(() => http.delete(_uri(path), headers: _headers()));

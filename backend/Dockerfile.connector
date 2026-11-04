@@ -1,0 +1,6 @@
+FROM python:3.12-slim
+WORKDIR /connector
+RUN pip install --no-cache-dir "httpx>=0.27,<1"
+COPY connector.py .
+USER 65534:65534
+ENTRYPOINT ["python", "/connector/connector.py"]
