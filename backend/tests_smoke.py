@@ -60,10 +60,25 @@ async def fake_get(client, url, **kw):
     return fake
 
 prov._get_json = fake_get
-jobs, errors = asyncio.run(prov.search_all(q="python", countries=["xx"]))
+jobs, errors = asyncio.run(prov.search_all(q="", countries=["xx"]))
 print("agregador: n=", len(jobs), "| errores:", errors,
       "| fecha desc:", jobs[0]["company"] == "Globex",
       "| html limpio:", "<b>" not in jobs[1]["title"])
 ro, _ = asyncio.run(prov.search_all(q="", countries=["xx"], remote_only=True))
 print("remote_only n=", len(ro))
+matches, errors = asyncio.run(prov.search_all(q="PYTHON dev", sources=["arbeitnow"]))
+assert not errors and [job["id"] for job in matches] == ["arbeitnow:s1"]
+
+from fastapi.testclient import TestClient
+from app.main import app
+
+update_prefs(PrefsBody(preferences={"remote_only": True}), user)
+with TestClient(app) as client:
+    headers = {"Authorization": "Bearer " + r["token"]}
+    reply = client.get("/jobs/search", params={"sources": "arbeitnow"}, headers=headers)
+    assert reply.status_code == 200
+    assert reply.json()["query"]["remote"] == "only"
+    reply = client.get("/jobs/search", params={"sources": "arbeitnow", "remote": "any"}, headers=headers)
+    assert reply.status_code == 200
+    assert reply.json()["query"]["remote"] == "any"
 print("TODOS LOS TESTS FUNCIONALES OK")
