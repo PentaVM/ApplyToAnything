@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/constants.dart';
+import '../core/external_links.dart';
 import '../core/theme.dart';
 import '../models/job.dart';
 import '../state/app_state.dart';
@@ -86,8 +87,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                       labelStyle: TextStyle(
                         fontSize: 12.5,
                         color: sel ? Colors.white : Colors.white70,
-                        fontWeight:
-                            sel ? FontWeight.w800 : FontWeight.w500,
+                        fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
                       ),
                       checkmarkColor: Colors.white,
                       selectedColor: AppTheme.accent.withValues(alpha: 0.85),
@@ -143,15 +143,9 @@ class _CoverLetterSheet extends StatefulWidget {
 }
 
 class _CoverLetterSheetState extends State<_CoverLetterSheet> {
-  bool _loading = true;
+  bool _loading = false;
   String? _error;
-  final TextEditingController _ctrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _generate();
-  }
+  final _ctrl = TextEditingController();
 
   @override
   void dispose() {
@@ -165,127 +159,94 @@ class _CoverLetterSheetState extends State<_CoverLetterSheet> {
       _error = null;
     });
     final app = context.read<AppState>();
+    final job = widget.job;
     try {
       final r = await app.api.post('/ai/cover-letter', {
         ...app.aiExtras(),
         'job': {
-          'title': widget.job.title,
-          'company': widget.job.company,
-          'location': widget.job.location,
-          'country': widget.job.country,
-          'remote': widget.job.remote,
-          'description': widget.job.description,
+          'title': job.title,
+          'company': job.company,
+          'location': job.location,
+          'country': job.country,
+          'remote': job.remote,
+          'description': job.description,
         },
       });
-      _ctrl.text = (r['reply'] ?? '').toString();
-    } catch (e) {
-      _error = e.toString();
+      if (!mounted) return;
+      final letter = (r['reply'] ?? '').toString().trim();
+      if (letter.isEmpty) throw StateError('Respuesta vacía');
+      _ctrl.text = letter;
+    } catch (_) {
+      _error = 'No se pudo generar la carta. Puedes escribirla aquí.';
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  void _addPortfolio() {
+    if (_ctrl.text.contains(portfolioUrl)) return;
+    _ctrl.text = [
+      if (_ctrl.text.trim().isNotEmpty) _ctrl.text.trim(),
+      'Portafolio de Nelson Vera: $portfolioUrl',
+    ].join('\n\n');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.88,
-        ),
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Material(
+        color: AppTheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.auto_awesome, color: AppTheme.accent2),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Carta para ${widget.job.title}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: _loading
-                      ? const Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(color: AppTheme.accent),
-                              SizedBox(height: 14),
-                              Text('Ana está escribiendo tu carta…'),
-                            ],
-                          ),
-                        )
-                      : _error != null
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '⚠️ $_error',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                                const SizedBox(height: 12),
-                                OutlinedButton(
-                                  onPressed: _generate,
-                                  child: const Text('Reintentar'),
-                                ),
-                              ],
-                            )
-                          : TextField(
-                              controller: _ctrl,
-                              maxLines: null,
-                              expands: true,
-                              textAlignVertical: TextAlignVertical.top,
-                              decoration: const InputDecoration(
-                                hintText: 'Tu carta de presentación…',
-                              ),
-                              style: const TextStyle(
-                                  height: 1.5, fontSize: 14.5),
-                            ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed:
-                            _loading ? null : () => _generate(),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                        ),
-                        child: const Text('Regenerar'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: _loading || _error != null
-                            ? null
-                            : () => Navigator.pop(context, _ctrl.text.trim()),
-                        child: const Text('Aplicar ahora'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          top: false,
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+            children: [
+              Text(
+                'Preparar postulación',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 6),
+              Text('${widget.job.title} · ${widget.job.company}'),
+              const SizedBox(height: 12),
+              const Text(
+                  'La carta es opcional. Completa el formulario en el sitio de la oferta.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _ctrl,
+                readOnly: _loading,
+                minLines: 4,
+                maxLines: 8,
+                decoration:
+                    const InputDecoration(labelText: 'Carta de presentación'),
+              ),
+              if (_loading) const LinearProgressIndicator(),
+              if (_error != null) Text(_error!),
+              Wrap(
+                spacing: 8,
+                children: [
+                  TextButton.icon(
+                    onPressed: _loading ? null : _generate,
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text('Generar con Ana'),
+                  ),
+                  TextButton.icon(
+                    onPressed: _loading ? null : _addPortfolio,
+                    icon: const Icon(Icons.link),
+                    label: const Text('Añadir portafolio'),
+                  ),
+                ],
+              ),
+              FilledButton(
+                onPressed: _loading
+                    ? null
+                    : () => Navigator.pop(context, _ctrl.text.trim()),
+                child: const Text('Guardar y abrir oferta'),
+              ),
+            ],
           ),
         ),
       ),

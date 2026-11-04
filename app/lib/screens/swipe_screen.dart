@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../core/external_links.dart';
 import '../core/theme.dart';
 import '../models/application.dart';
 import '../models/job.dart';
@@ -22,6 +22,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
   List<Job> _jobs = [];
   final Set<String> _seen = {};
   bool _loading = false;
+  bool _deciding = false;
   bool _loadedOnce = false;
   String? _error;
   String? _queryInfo;
@@ -39,11 +40,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
   Future<void> _init() async {
     if (!mounted) return;
     final app = context.read<AppState>();
-    final c = app.preferences['countries'];
-    if (c is List && c.isNotEmpty) {
-      _countries = c.map((e) => e.toString()).toList();
-    }
-    _remoteOnly = app.preferences['remote_only'] == true;
+    _readFilters(app);
     try {
       final apps = await fetchApplications(app);
       for (final a in apps) {
@@ -55,8 +52,16 @@ class _SwipeScreenState extends State<SwipeScreen> {
     if (mounted) await _load(reset: true);
   }
 
+  void _readFilters(AppState app) {
+    final countries = app.preferences['countries'];
+    _countries = countries is List && countries.isNotEmpty
+        ? countries.map((item) => item.toString()).toList()
+        : const ['xx'];
+    _remoteOnly = app.preferences['remote_only'] == true;
+  }
+
   Future<void> _load({required bool reset}) async {
-    if (_loading || !mounted) return;
+    if (_loading || _deciding || !mounted || (!reset && _page > 10)) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -71,9 +76,10 @@ class _SwipeScreenState extends State<SwipeScreen> {
         'countries': _countries.join(','),
       });
       if (!mounted) return;
+      final shown = {..._seen, if (!reset) ..._jobs.map((job) => job.id)};
       final list = ((r['jobs'] as List?) ?? [])
           .map((e) => Job.fromJson((e as Map).cast<String, dynamic>()))
-          .where((j) => !_seen.contains(j.id))
+          .where((j) => shown.add(j.id))
           .toList();
       final info = (r['query'] as Map?)?['q'];
       setState(() {
@@ -100,6 +106,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
   }
 
   Future<void> _openFilters() async {
+    if (_deciding || _loading) return;
     final res = await showFilterSheet(
       context,
       selected: _countries,
@@ -107,49 +114,56 @@ class _SwipeScreenState extends State<SwipeScreen> {
     );
     if (res == null || !mounted) return;
     setState(() {
+      _deciding = true;
       _countries = res.countries;
       _remoteOnly = res.remoteOnly;
     });
     final app = context.read<AppState>();
-    app.setLocalPreferences({'countries': _countries, 'remote_only': _remoteOnly});
-    app
-        .savePreferences({'countries': _countries, 'remote_only': _remoteOnly})
-        .catchError((_) {});
+    try {
+      await app.savePreferences(
+          {'countries': _countries, 'remote_only': _remoteOnly});
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Los filtros se usarán en esta búsqueda. No se guardaron en el perfil.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deciding = false);
+    }
     if (mounted) await _load(reset: true);
   }
 
   Future<void> _onDecide(Job job, SwipeDir dir) async {
-    setState(() => _jobs.remove(job));
-
-    if (dir == SwipeDir.left) {
-      await _saveApp(job, 'skipped');
-      return;
-    }
-    if (dir == SwipeDir.up) {
-      await _saveApp(job, 'liked');
-      if (mounted) {
+    if (_deciding || _loading) return;
+    setState(() => _deciding = true);
+    try {
+      final preparing = dir == SwipeDir.right;
+      final letter = preparing ? await showCoverLetterSheet(context, job) : '';
+      if (letter == null || !mounted) return;
+      final saved = await _saveApp(
+        job,
+        dir == SwipeDir.left ? 'skipped' : 'liked',
+        letter: letter,
+      );
+      if (!saved || !mounted) return;
+      setState(() => _jobs.removeWhere((item) => item.id == job.id));
+      if (preparing) {
+        await openExternalLink(context, job.url);
+      } else if (dir == SwipeDir.up) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('⭐ Oferta guardada')),
+          const SnackBar(content: Text('Oferta guardada')),
         );
       }
-      return;
-    }
-
-    // Swipe derecha → flujo de postulación con carta de la IA
-    final letter = await showCoverLetterSheet(context, job);
-    if (letter == null || letter.isEmpty) return;
-    await _saveApp(job, 'applied', letter: letter);
-    if (job.url.isNotEmpty) {
-      try {
-        await launchUrl(Uri.parse(job.url),
-            mode: LaunchMode.externalApplication);
-      } catch (_) {
-        // La oferta se registra igual; el navegador puede bloquear el intent.
-      }
+    } finally {
+      if (mounted) setState(() => _deciding = false);
     }
   }
 
-  Future<void> _saveApp(Job job, String status, {String letter = ''}) async {
+  Future<bool> _saveApp(Job job, String status,
+      {required String letter}) async {
     final app = context.read<AppState>();
     try {
       await app.api.post('/applications', {
@@ -160,16 +174,18 @@ class _SwipeScreenState extends State<SwipeScreen> {
         'source': job.source,
         'country': job.country,
         'status': status,
-        'method': status == 'applied' ? 'external_url' : 'none',
+        'method': 'none',
         'cover_letter': letter,
       });
       _seen.add(job.id);
+      return true;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No se pudo registrar: $e')),
         );
       }
+      return false;
     }
   }
 
@@ -188,12 +204,17 @@ class _SwipeScreenState extends State<SwipeScreen> {
           IconButton(
             tooltip: 'Filtros',
             icon: const Icon(Icons.tune_rounded),
-            onPressed: _openFilters,
+            onPressed: _loading || _deciding ? null : _openFilters,
           ),
           IconButton(
             tooltip: 'Actualizar',
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loading ? null : () => _load(reset: true),
+            onPressed: _loading || _deciding
+                ? null
+                : () {
+                    _readFilters(app);
+                    _load(reset: true);
+                  },
           ),
         ],
       ),
@@ -211,9 +232,12 @@ class _SwipeScreenState extends State<SwipeScreen> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
               child: Row(
                 children: [
-                  Text(_queryInfo!,
-                      style:
-                          const TextStyle(color: Colors.white38, fontSize: 12)),
+                  Expanded(
+                      child: Text(_queryInfo!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12))),
                 ],
               ),
             ),
@@ -229,13 +253,14 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         child: _jobs.isEmpty && !_loading
                             ? ListView(
                                 children: [
-                                  const SizedBox(height: 160),
+                                  const SizedBox(height: 32),
                                   const SwipeDeckFallbackEmpty(),
                                   const SizedBox(height: 20),
-                                  FilledButton(
-                                    onPressed: () => _load(reset: true),
-                                    child: const Text('Cargar más ofertas'),
-                                  ),
+                                  if (_page <= 10)
+                                    FilledButton(
+                                      onPressed: () => _load(reset: false),
+                                      child: const Text('Cargar más ofertas'),
+                                    ),
                                   const SizedBox(height: 24),
                                 ],
                               )
@@ -243,6 +268,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                 jobs: _jobs,
                                 controller: _deck,
                                 onDecide: _onDecide,
+                                enabled: !_loading && !_deciding,
                               ),
                       ),
           ),
@@ -314,17 +340,16 @@ class _SwipeScreenState extends State<SwipeScreen> {
         btn(Icons.close_rounded, AppTheme.accent, 'Paso',
             () => _deck.swipe(SwipeDir.left)),
         btn(Icons.star_rounded, AppTheme.accent2, 'Guardar',
-            () => _deck.swipe(SwipeDir.up), big: true),
-        btn(Icons.check_rounded, AppTheme.green, 'Aplicar',
+            () => _deck.swipe(SwipeDir.up),
+            big: true),
+        btn(Icons.edit_note_rounded, AppTheme.green, 'Preparar postulación',
             () => _deck.swipe(SwipeDir.right)),
       ],
     );
   }
 
   Widget _banner(
-      {required IconData icon,
-      required String text,
-      required Color color}) {
+      {required IconData icon, required String text, required Color color}) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

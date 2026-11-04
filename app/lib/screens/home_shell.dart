@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'applications_screen.dart';
 import 'chat_screen.dart';
+import 'portfolio_screen.dart';
 import 'profile_screen.dart';
 import 'swipe_screen.dart';
 
@@ -20,11 +21,15 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: IndexedStack(
         index: _tab,
-        children: const [
-          SwipeScreen(),
-          ChatScreen(),
-          ApplicationsScreen(),
-          ProfileScreen(),
+        children: [
+          const SwipeScreen(),
+          const ChatScreen(),
+          if (_tab == 2)
+            const ApplicationsScreen()
+          else
+            const SizedBox.shrink(),
+          const ProfileScreen(),
+          if (_tab == 4) const PortfolioScreen() else const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -44,12 +49,17 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(
             icon: Icon(Icons.work_outline_rounded),
             selectedIcon: Icon(Icons.work_rounded),
-            label: 'Postulaciones',
+            label: 'Seguimiento',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
             selectedIcon: Icon(Icons.person_rounded),
             label: 'Perfil',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.badge_outlined),
+            selectedIcon: Icon(Icons.badge_rounded),
+            label: 'Portafolio',
           ),
         ],
       ),

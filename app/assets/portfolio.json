@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-28T00:00:00Z",
+  "owner": {
+    "displayName": "Nelson Vera",
+    "headline": "Cloud operations, Linux, automation and internal technical support",
+    "location": "Chile · remote worldwide",
+    "languages": [
+      "Spanish · native",
+      "English · bilingual",
+      "Mandarin · level not stated",
+      "Portuguese · level not stated"
+    ],
+    "availability": "Remote support, cloud operations, observability and junior engineering roles"
+  },
+  "narrative": "I turn operational complexity into reliable systems: observable infrastructure, useful internal tools and automation that keeps humans in control.",
+  "capabilities": [
+    {
+      "group": "Cloud & operations",
+      "items": [
+        "Linux",
+        "Docker",
+        "Kubernetes",
+        "nginx",
+        "DigitalOcean",
+        "Incident troubleshooting"
+      ]
+    },
+    {
+      "group": "Automation & backend",
+      "items": [
+        "TypeScript",
+        "Python",
+        "Bash",
+        "Zsh",
+        "PHP",
+        "C99",
+        "Node.js",
+        "FastAPI",
+        "REST APIs",
+        "PostgreSQL",
+        "TimescaleDB",
+        "Redis",
+        "MinIO",
+        "Supabase"
+      ]
+    },
+    {
+      "group": "Product delivery",
+      "items": [
+        "React",
+        "Next.js",
+        "Playwright",
+        "Puppeteer",
+        "Git",
+        "LLM integrations",
+        "Multi-agent systems",
+        "MCP"
+      ]
+    },
+    {
+      "group": "Security & research",
+      "items": [
+        "Web and GraphQL security",
+        "Authorized pentesting",
+        "Threat analysis",
+        "Lean 4",
+        "Mathlib",
+        "Scientific computing"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "slug": "estadoflow",
+      "name": "EstadoFlow",
+      "category": "Procurement intelligence",
+      "summary": "A containerized SaaS and operations platform for high-volume public-procurement discovery, qualification and workflow automation.",
+      "outcomes": [
+        "Centralized opportunity intelligence and operational decision-making",
+        "Combined live relational and time-series data for traceable workflows",
+        "Built cloud infrastructure, APIs and internal tooling as one coherent system"
+      ],
+      "stack": [
+        "Linux",
+        "Docker",
+        "Kubernetes",
+        "PostgreSQL",
+        "TimescaleDB",
+        "DigitalOcean",
+        "Node.js"
+      ],
+      "visibility": "public-summary"
+    },
+    {
+      "slug": "vera-motors-bid-operations",
+      "name": "Vera Motors · Bid Operations",
+      "category": "Browser and workflow automation",
+      "summary": "An automation layer for repetitive tender operations, evidence capture and higher-quality bid decisions at scale.",
+      "outcomes": [
+        "Converted repetitive browser work into auditable workflows",
+        "Improved throughput while preserving human review at consequential steps",
+        "Connected extraction, ranking and operational follow-through"
+      ],
+      "stack": [
+        "Playwright",
+        "Puppeteer",
+        "Python",
+        "Node.js",
+        "REST APIs",
+        "PostgreSQL"
+      ],
+      "visibility": "public-summary"
+    },
+    {
+      "slug": "trabajo",
+      "name": "Trabajo",
+      "category": "Opportunity intelligence",
+      "summary": "A multi-candidate engine for evidence-aware job discovery, ranking, application pipelines and feedback analytics across countries.",
+      "outcomes": [
+        "Separates verified facts from search-only skill inferences",
+        "Balances high-probability applications with deliberate market exploration",
+        "Models work-permit, language and compensation friction without exposing private documents"
+      ],
+      "stack": [
+        "TypeScript",
+        "Next.js",
+        "Zod",
+        "PostgreSQL-ready",
+        "Vercel"
+      ],
+      "visibility": "public-summary"
+    },
+    {
+      "slug": "5holding",
+      "name": "5Holding",
+      "category": "Multi-tenant infrastructure",
+      "summary": "Shared runtime and cross-cutting tenant infrastructure behind product slices and migrations.",
+      "outcomes": [
+        "Separated shared runtime concerns from product-specific slices",
+        "Preserved readable paths and history during monolith categorization",
+        "Kept secrets, environment files, build output and local databases outside the published boundary"
+      ],
+      "stack": [
+        "TypeScript",
+        "SQL migrations",
+        "Multi-tenant runtime",
+        "Infrastructure"
+      ],
+      "visibility": "public-summary"
+    },
+    {
+      "slug": "sheriffos",
+      "name": "SheriffOS",
+      "category": "Agentic security operating layer",
+      "summary": "Authorized bug-bounty orchestration with scope and refusal rules enforced in code.",
+      "outcomes": [
+        "Restricts model actions to registered structured tools",
+        "Requires human approval for intrusive levels and disables the highest level by default",
+        "Redacts secrets and writes append-only JSONL audit events"
+      ],
+      "stack": [
+        "C99",
+        "libc",
+        "Linux",
+        "JSONL",
+        "Agent systems"
+      ],
+      "visibility": "public-summary"
+    },
+    {
+      "slug": "tar-math",
+      "name": "TAR Math",
+      "category": "Autonomous formal research",
+      "summary": "A proof-obligation platform where proposals only count after Lean 4 kernel verification against Mathlib.",
+      "outcomes": [
+        "Uses recoverable checkpointed jobs and replayable event state",
+        "Compiles proof attempts in networkless, resource-capped containers",
+        "Rejects open goals, sorry, admit and new axioms"
+      ],
+      "stack": [
+        "Next.js",
+        "TypeScript",
+        "FastAPI",
+        "Lean 4",
+        "Mathlib",
+        "PostgreSQL",
+        "Redis",
+        "MinIO",
+        "MCP"
+      ],
+      "visibility": "public-summary"
+    },
+    {
+      "slug": "ispt-plus",
+      "name": "ISPT+",
+      "category": "Scientific computing exploration",
+      "summary": "Written and numerical exploration of a damping operator on Sobolev-Gevrey spaces.",
+      "outcomes": [
+        "Built shell-model and spectral numerical probes",
+        "Uses plots to challenge the inequality rather than decorate it",
+        "Publishes no claim of a completed mathematical result"
+      ],
+      "stack": [
+        "Scientific computing",
+        "Spectral analysis",
+        "Numerical simulation"
+      ],
+      "visibility": "public-summary"
+    },
+    {
+      "slug": "malware-research",
+      "name": "Malware Research",
+      "category": "Sandboxed defensive research",
+      "summary": "High-level study of malicious-software behaviour, propagation and financial-malware architecture in isolated environments.",
+      "outcomes": [
+        "Studies behaviour deeply enough to reason about detection and defence",
+        "Keeps research isolated and sandboxed",
+        "Publishes no payloads, evasion, persistence, bypass or infection procedures"
+      ],
+      "stack": [
+        "Sandboxing",
+        "Threat analysis",
+        "Security research"
+      ],
+      "visibility": "public-summary"
+    }
+  ],
+  "principles": [
+    "Evidence before claims",
+    "Automation with explicit review gates",
+    "Observability is a product feature",
+    "Private data never belongs in a public client bundle"
+  ]
+}

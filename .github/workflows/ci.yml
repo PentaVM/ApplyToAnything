@@ -35,11 +35,30 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Generate platform folders (android/ etc.)
-        run: flutter create . --org com.applytoanything --project-name apply_to_anything
+          flutter-version: '3.47.8'
+          cache: true
+      - name: Generate Android project
+        run: |
+          flutter create . --platforms=android --org com.applytoanything --project-name apply_to_anything
+          python ../scripts/configure_android.py
       - name: Pub get
         run: flutter pub get
       - name: Analyze
         run: flutter analyze
-      - name: Build debug APK
-        run: flutter build apk --debug
+      - name: Test
+        run: flutter test
+      - name: Build installable APK
+        run: flutter build apk --release
+      - name: Verify APK signature and manifest
+        run: |
+          tools_dir="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          "$tools_dir/apksigner" verify --print-certs "$apk"
+          "$tools_dir/aapt" dump badging "$apk" > "$RUNNER_TEMP/ata-badging.txt"
+          grep -F "name='com.applytoanything.apply_to_anything'" "$RUNNER_TEMP/ata-badging.txt"
+          grep -F "name='android.permission.INTERNET'" "$RUNNER_TEMP/ata-badging.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apply-to-anything-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
