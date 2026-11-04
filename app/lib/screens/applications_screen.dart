@@ -200,11 +200,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (context, i) {
           final a = items[i];
-          return Container(
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
+          return Material(
+            color: AppTheme.surface,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+              side: const BorderSide(color: Colors.white10),
             ),
             child: ListTile(
               contentPadding:
