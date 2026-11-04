@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
 import '../state/app_state.dart';
+import 'portfolio_screen.dart';
+import 'settings_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,7 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     if (pass.length < 6) {
-      setState(() => _error = 'La contraseña debe tener al menos 6 caracteres.');
+      setState(
+          () => _error = 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
     setState(() {
@@ -60,12 +63,13 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.style_rounded, size: 72, color: AppTheme.accent),
+                const Icon(Icons.explore_rounded,
+                    size: 64, color: AppTheme.accent),
                 const SizedBox(height: 10),
                 const Text(
                   'ApplyToAnything',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
                 ),
                 const Text(
                   'Tu próximo trabajo está a un swipe',
@@ -101,7 +105,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 14),
                   Text(
                     _error!,
-                    style: const TextStyle(color: AppTheme.accent, fontSize: 13.5),
+                    style:
+                        const TextStyle(color: AppTheme.accent, fontSize: 13.5),
                   ),
                 ],
                 const SizedBox(height: 22),
@@ -123,6 +128,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     MaterialPageRoute(builder: (_) => const RegisterScreen()),
                   ),
                   child: const Text('¿No tienes cuenta? Crear cuenta'),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _loading
+                          ? null
+                          : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const SettingsScreen()),
+                              ),
+                      icon: const Icon(Icons.dns_outlined),
+                      label: const Text('Configurar conexión'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PortfolioScreen()),
+                      ),
+                      icon: const Icon(Icons.badge_outlined),
+                      label: const Text('Portafolio'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -170,7 +201,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     if (pass.length < 6) {
-      setState(() => _error = 'La contraseña debe tener al menos 6 caracteres.');
+      setState(
+          () => _error = 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
     setState(() {
@@ -179,6 +211,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     try {
       await context.read<AppState>().register(name, email, pass);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
@@ -241,7 +274,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 14),
                 Text(
                   _error!,
-                  style: const TextStyle(color: AppTheme.accent, fontSize: 13.5),
+                  style:
+                      const TextStyle(color: AppTheme.accent, fontSize: 13.5),
                 ),
               ],
               const SizedBox(height: 22),

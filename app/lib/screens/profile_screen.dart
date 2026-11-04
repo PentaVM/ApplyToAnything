@@ -34,16 +34,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _skillCtrl = TextEditingController();
     _salaryCtrl =
         TextEditingController(text: (p['salary_min'] ?? '').toString());
-    _countries = ((p['countries'] as List?) ?? const [])
+    _countries = (p['countries'] is List ? p['countries'] as List : const [])
         .map((e) => e.toString())
         .toSet();
     if (_countries.isEmpty) _countries.add('xx');
-    _modality = _pick((p['modality'] ?? '').toString(), AppConstants.modalities);
+    _modality =
+        _pick((p['modality'] ?? '').toString(), AppConstants.modalities);
     _seniority =
         _pick((p['seniority'] ?? '').toString(), AppConstants.seniorities);
-    _currency = _pick((p['currency'] ?? 'USD').toString(), AppConstants.currencies);
+    _currency =
+        _pick((p['currency'] ?? 'USD').toString(), AppConstants.currencies);
     _remoteOnly = p['remote_only'] == true;
-    _skills = ((p['skills'] as List?) ?? const [])
+    _skills = (p['skills'] is List ? p['skills'] as List : const [])
         .map((e) => e.toString())
         .where((s) => s.isNotEmpty)
         .toList();
@@ -148,8 +150,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w800)),
                     Text(user?.email ?? '',
-                        style:
-                            const TextStyle(color: Colors.white54, fontSize: 13)),
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 13)),
                   ],
                 ),
               ),
@@ -160,8 +162,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextField(
             controller: _role,
             onChanged: (_) => _touch(),
-            decoration:
-                const InputDecoration(hintText: 'Ej. desarrollador web, contador…'),
+            decoration: const InputDecoration(
+                hintText: 'Ej. desarrollador web, contador…'),
           ),
           const SizedBox(height: 18),
           _section('Skills (para buscar ofertas)'),
@@ -188,8 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: TextField(
                   controller: _skillCtrl,
                   onSubmitted: (_) => _addSkill(),
-                  decoration:
-                      const InputDecoration(hintText: 'Añadir skill…'),
+                  decoration: const InputDecoration(hintText: 'Añadir skill…'),
                 ),
               ),
               IconButton(

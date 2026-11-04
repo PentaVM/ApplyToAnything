@@ -32,7 +32,8 @@ class AppState extends ChangeNotifier {
     return _api!;
   }
 
-  bool get hasProfile => (preferences['role'] ?? '').toString().trim().isNotEmpty;
+  bool get hasProfile =>
+      (preferences['role'] ?? '').toString().trim().isNotEmpty;
 
   Future<void> boot() async {
     final p = await SharedPreferences.getInstance();
@@ -51,7 +52,8 @@ class AppState extends ChangeNotifier {
       try {
         final me = await api.get('/me');
         user = User.fromJson((me['user'] as Map).cast<String, dynamic>());
-        preferences = Map<String, dynamic>.from((me['preferences'] ?? {}) as Map);
+        preferences =
+            Map<String, dynamic>.from((me['preferences'] ?? {}) as Map);
       } catch (_) {
         token = null;
         user = null;
@@ -65,6 +67,9 @@ class AppState extends ChangeNotifier {
   Future<void> login(String email, String password) async {
     final r = await api
         .post('/auth/login', {'email': email.trim(), 'password': password});
+    final client = ApiClient(backendUrl)..token = r['token'] as String;
+    final me = await client.get('/me');
+    r['preferences'] = me['preferences'];
     await _saveSession(r);
   }
 
@@ -82,14 +87,18 @@ class AppState extends ChangeNotifier {
     user = User.fromJson((r['user'] as Map).cast<String, dynamic>());
     final p = await SharedPreferences.getInstance();
     await p.setString(_kToken, token!);
+    preferences = Map<String, dynamic>.from((r['preferences'] ?? {}) as Map);
+    await p.setString(_kPrefs, jsonEncode(preferences));
     notifyListeners();
   }
 
   Future<void> logout() async {
     final p = await SharedPreferences.getInstance();
     await p.remove(_kToken);
+    await p.remove(_kPrefs);
     token = null;
     user = null;
+    preferences = {};
     notifyListeners();
   }
 
@@ -113,10 +122,29 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> setBackendUrl(String value) async {
-    backendUrl = value.trim().isEmpty ? AppConstants.defaultBackendUrl : value.trim();
+    final next = normalizeBackendUrl(value);
+    if (next == backendUrl) return;
+    await logout();
+    backendUrl = next;
     final p = await SharedPreferences.getInstance();
     await p.setString(_kBackend, backendUrl);
     notifyListeners();
+  }
+
+  static String normalizeBackendUrl(String value) {
+    final url = value.trim().replaceFirst(RegExp(r'/+$'), '');
+    if (url.isEmpty) return AppConstants.defaultBackendUrl;
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw ApiException(
+          'Introduce una URL válida que empiece con http:// o https://.');
+    }
+    return url;
   }
 
   Future<void> setOmniConfig(String model, String key) async {

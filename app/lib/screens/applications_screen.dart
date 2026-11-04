@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../core/external_links.dart';
 import '../core/theme.dart';
 import '../models/application.dart';
 import '../state/app_state.dart';
@@ -19,12 +20,19 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   late final TabController _tabs = TabController(length: 2, vsync: this);
   List<Application> _all = [];
   bool _loading = true;
+  bool _updating = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -51,36 +59,67 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   }
 
   Future<void> _markApplied(Application a) async {
-    final app = context.read<AppState>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar envío'),
+        content: Text('¿Ya enviaste tu postulación a ${a.company}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Volver'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sí, ya la envié'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    await _update(() => context.read<AppState>().api.patch(
+          '/applications/${a.id}',
+          {'status': 'applied'},
+        ));
+  }
+
+  Future<void> _update(Future<dynamic> Function() request) async {
+    if (_updating) return;
+    setState(() => _updating = true);
     try {
-      await app.api.patch('/applications/${a.id}', {'status': 'applied'});
-      if (a.url.isNotEmpty) {
-        try {
-          await launchUrl(Uri.parse(a.url),
-              mode: LaunchMode.externalApplication);
-        } catch (_) {}
-      }
+      await request();
       await _load();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
+    } finally {
+      if (mounted) setState(() => _updating = false);
     }
   }
 
-  Future<void> _delete(Application a) async {
-    final app = context.read<AppState>();
-    try {
-      await app.api.delete('/applications/${a.id}');
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
+  Future<void> _viewLetter(Application a) => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Carta de presentación'),
+          content: SingleChildScrollView(child: SelectableText(a.coverLetter)),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: a.coverLetter));
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Carta copiada')),
+                  );
+                }
+              },
+              child: const Text('Copiar carta'),
+            ),
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -103,13 +142,14 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white38,
           tabs: const [
-            Tab(text: 'Aplicadas'),
-            Tab(text: 'Guardadas ⭐'),
+            Tab(text: 'Enviadas'),
+            Tab(text: 'Pendientes'),
           ],
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.accent))
           : _error != null
               ? Center(
                   child: Padding(
@@ -140,8 +180,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             const SizedBox(height: 12),
             Text(
               appliedTab
-                  ? 'Aún no has aplicado a ninguna oferta.\n¡Desliza a la derecha en Empleos!'
-                  : 'No tienes ofertas guardadas.\nDesliza hacia arriba para guardar.',
+                  ? 'Aquí verás las postulaciones que confirmes como enviadas.'
+                  : 'Guarda una oferta o prepara una postulación desde Empleos.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white54, height: 1.5),
             ),
@@ -180,32 +220,36 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Colors.white54, fontSize: 12.5),
               ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              onTap:
+                  a.url.isEmpty ? null : () => openExternalLink(context, a.url),
+              trailing: PopupMenuButton<String>(
+                enabled: !_updating,
+                tooltip: 'Opciones de la oferta',
+                onSelected: (action) async {
+                  switch (action) {
+                    case 'open':
+                      await openExternalLink(context, a.url);
+                    case 'letter':
+                      await _viewLetter(a);
+                    case 'sent':
+                      await _markApplied(a);
+                    case 'delete':
+                      await _update(() => context.read<AppState>().api.delete(
+                            '/applications/${a.id}',
+                          ));
+                  }
+                },
+                itemBuilder: (_) => [
+                  if (a.url.isNotEmpty)
+                    const PopupMenuItem(
+                        value: 'open', child: Text('Abrir oferta')),
+                  if (a.coverLetter.isNotEmpty)
+                    const PopupMenuItem(
+                        value: 'letter', child: Text('Ver carta')),
                   if (!appliedTab)
-                    IconButton(
-                      tooltip: 'Aplicar ahora',
-                      icon: const Icon(Icons.check_circle_outline_rounded,
-                          color: AppTheme.green),
-                      onPressed: () => _markApplied(a),
-                    ),
-                  if (appliedTab && a.url.isNotEmpty)
-                    IconButton(
-                      tooltip: 'Abrir oferta',
-                      icon: const Icon(Icons.open_in_new_rounded,
-                          color: AppTheme.accent2),
-                      onPressed: () {
-                        launchUrl(Uri.parse(a.url),
-                            mode: LaunchMode.externalApplication);
-                      },
-                    ),
-                  IconButton(
-                    tooltip: 'Eliminar',
-                    icon: const Icon(Icons.delete_outline_rounded,
-                        color: Colors.white38, size: 20),
-                    onPressed: () => _delete(a),
-                  ),
+                    const PopupMenuItem(
+                        value: 'sent', child: Text('Marcar como enviada')),
+                  const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                 ],
               ),
             ),

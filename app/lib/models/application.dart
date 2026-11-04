@@ -9,10 +9,12 @@ class Application {
     required this.country,
     required this.status,
     required this.createdAt,
+    this.coverLetter = '',
   });
 
   final int id;
   final String jobId, title, company, url, source, country, status, createdAt;
+  final String coverLetter;
 
   factory Application.fromJson(Map<String, dynamic> j) => Application(
         id: (j['id'] as num?)?.toInt() ?? 0,
@@ -24,5 +26,6 @@ class Application {
         country: (j['country'] ?? '').toString(),
         status: (j['status'] ?? 'liked').toString(),
         createdAt: (j['created_at'] ?? '').toString(),
+        coverLetter: (j['cover_letter'] ?? '').toString(),
       );
 }

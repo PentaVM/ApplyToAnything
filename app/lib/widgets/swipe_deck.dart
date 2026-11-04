@@ -30,11 +30,13 @@ class SwipeDeck extends StatefulWidget {
     required this.jobs,
     required this.controller,
     required this.onDecide,
+    this.enabled = true,
   });
 
   final List<Job> jobs;
   final SwipeDeckController controller;
   final void Function(Job job, SwipeDir dir) onDecide;
+  final bool enabled;
 
   @override
   State<SwipeDeck> createState() => _SwipeDeckState();
@@ -71,10 +73,11 @@ class _SwipeDeckState extends State<SwipeDeck>
     super.dispose();
   }
 
-  bool get _busy => _flying != null || widget.jobs.isEmpty;
+  bool get _busy => !widget.enabled || _flying != null || widget.jobs.isEmpty;
 
   void _trigger(SwipeDir dir) {
     if (_busy || !mounted) return;
+    final job = widget.jobs.first;
     final size = MediaQuery.of(context).size;
     _exitFrom = _drag;
     switch (dir) {
@@ -88,8 +91,13 @@ class _SwipeDeckState extends State<SwipeDeck>
     setState(() => _flying = dir);
     _exit.forward(from: 0).whenComplete(() {
       if (!mounted) return;
-      final job = widget.jobs.first;
-      widget.onDecide(job, dir);
+      setState(() {
+        _drag = Offset.zero;
+        _flying = null;
+      });
+      if (widget.enabled && widget.jobs.firstOrNull?.id == job.id) {
+        widget.onDecide(job, dir);
+      }
     });
   }
 
@@ -139,13 +147,14 @@ class _SwipeDeckState extends State<SwipeDeck>
           child: GestureDetector(
             onPanUpdate: _onPanUpdate,
             onPanEnd: _onPanEnd,
+            onPanCancel: () => setState(() => _drag = Offset.zero),
             child: AnimatedBuilder(
               animation: _exit,
               builder: (context, _) {
                 final Offset off;
                 if (_flying != null) {
                   off = Offset.lerp(_exitFrom, _exitTo,
-                          Curves.easeOutCubic.transform(_exit.value))!;
+                      Curves.easeOutCubic.transform(_exit.value))!;
                 } else {
                   off = _drag;
                 }
@@ -162,7 +171,7 @@ class _SwipeDeckState extends State<SwipeDeck>
                       children: [
                         JobCard(job: jobs.first, top: true),
                         _Stamp(
-                          label: 'APLICAR',
+                          label: 'PREPARAR',
                           color: AppTheme.green,
                           icon: Icons.check_rounded,
                           rotation: -0.3,

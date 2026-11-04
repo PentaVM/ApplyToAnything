@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
 
+import '../core/api.dart';
 import '../core/constants.dart';
 import '../core/theme.dart';
 import '../state/app_state.dart';
@@ -33,12 +34,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _save() async {
     final app = context.read<AppState>();
-    await app.setBackendUrl(_backend.text);
-    await app.setOmniConfig(_model.text, _key.text);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Ajustes guardados')),
-      );
+    try {
+      final next = AppState.normalizeBackendUrl(_backend.text);
+      final reconnect = next != app.backendUrl && app.user != null;
+      await app.setBackendUrl(next);
+      await app.setOmniConfig(_model.text, _key.text);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(reconnect
+            ? 'Conexión guardada. Vuelve a iniciar sesión.'
+            : 'Ajustes guardados'),
+      ));
+      Navigator.pop(context);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _testResult = e.message);
     }
   }
 
@@ -47,11 +56,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _testing = true;
       _testResult = null;
     });
-    final app = context.read<AppState>();
     try {
-      await app.setBackendUrl(_backend.text);
-      await app.setOmniConfig(_model.text, _key.text);
-      final h = await app.api.get('/health');
+      final client = ApiClient(AppState.normalizeBackendUrl(_backend.text));
+      final h = await client.get('/health').timeout(const Duration(seconds: 8));
+      if (h is! Map || h['app'] != 'ApplyToAnything' || h['status'] != 'ok') {
+        throw ApiException(
+            'La URL no corresponde al backend de ApplyToAnything.');
+      }
       if (!mounted) return;
       setState(() {
         _testing = false;
@@ -167,7 +178,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: _save,
+                  onPressed: _testing ? null : _save,
                   child: const Text('Guardar'),
                 ),
               ),
@@ -176,8 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (_testResult != null) ...[
             const SizedBox(height: 14),
             Text(_testResult!,
-                style:
-                    const TextStyle(fontSize: 12.5, height: 1.5)),
+                style: const TextStyle(fontSize: 12.5, height: 1.5)),
           ],
           const SizedBox(height: 24),
           OutlinedButton.icon(

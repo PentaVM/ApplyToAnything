@@ -7,6 +7,10 @@ con carta de presentación generada automáticamente.** Clon libre de herramient
 aiAutoApply, hecho en **Flutter (Android)** + **backend FastAPI** + **OmniRoute** como
 gateway de IA **100% gratuito**.
 
+Descarga el APK de Android desde [GitHub Releases](https://github.com/PentaVM/ApplyToAnything/releases).
+En el inicio de la app puedes abrir **Portafolio** sin cuenta y entrar a **Configurar conexión**
+para apuntar a tu backend antes de registrarte.
+
 ```
  ┌─────────────────────────┐        ┌──────────────────────────┐        ┌─────────────────────┐
  │  App Flutter (Android)  │  HTTP  │   Backend FastAPI local  │        │ OmniRoute (gratis)  │
@@ -35,11 +39,14 @@ gateway de IA **100% gratuito**.
   RemoteOK (sin claves, funcionan al instante) + Adzuna y Jooble por país (claves gratuitas
   opcionales). Deduplicación, orden por fecha y filtrado remoto/por país.
 - **Interfaz tipo Tinder**: mazo de tarjetas con drag, rotación y sellos animados.
-  - Desliza a la **derecha** → Ana genera una **carta de presentación** editable, se abre la
-    oferta en el navegador y se registra como *Aplicada*.
+  - Desliza a la **derecha** → prepara la postulación con una carta opcional, manual o
+    generada por Ana. Puedes añadir el enlace al portafolio y guardar el borrador antes de
+    abrir la oferta en el navegador.
   - Desliza **arriba** → guardas la oferta (*Guardadas*).
   - Desliza a la **izquierda** → la descarta (no vuelve a aparecer).
-- **Postulaciones**: pestañas Aplicadas/Guardadas, abrir oferta, actualizar estado, eliminar.
+- **Seguimiento**: abre ofertas, copia cartas y confirma el envío tras completar el formulario externo.
+- **Portafolio**: perfil público de Nelson Vera, ocho proyectos con resultados y tecnologías,
+  competencias y principios. La copia incluida se puede leer sin conexión.
 - **Perfil editable** manualmente (por si prefieres no usar el chat) y **Ajustes** con prueba de
   conexión y visor del `system.md`.
 
@@ -81,34 +88,30 @@ JOOBLE_API_KEY=xxx     # https://jooble.org/api/about (free)
 
 ```bash
 cd app
-flutter create . --org com.applytoanything --project-name apply_to_anything
+flutter create . --platforms=android --org com.applytoanything --project-name apply_to_anything
+python ../scripts/configure_android.py
 flutter pub get
 flutter run          # o: flutter build apk --release
 ```
 
-> `flutter create .` genera las carpetas de plataforma (android/, ios/, …). No toca `lib/`.
-> El CI de GitHub hace exactamente esto y compila el APK en cada push.
-
-**Permisos Android**: en `android/app/src/main/AndroidManifest.xml` añade dentro de `<manifest>`
-(la app habla con tu backend por HTTP local):
-
-```xml
-<uses-permission android:name="android.permission.INTERNET"/>
-<application android:usesCleartextTraffic="true" ...>
-```
+El script configura el permiso de Internet y el HTTP necesario para conectar con el backend local.
+La compilación de GitHub Actions ejecuta el análisis y las pruebas antes de publicar el APK firmado
+con una clave de desarrollo para instalación directa.
 
 ### 4. Conecta la app al backend
 
 - **Emulador Android**: la URL por defecto ya es `http://10.0.2.2:8000` (= localhost de tu PC).
-- **Dispositivo físico**: abre *Perfil → Ajustes* y pon `http://IP-DE-TU-PC:8000`
-  (misma red WiFi; el `run.bat` ya escucha en 0.0.0.0). Pulsa **Probar conexión**.
+- **Dispositivo físico**: abre **Configurar conexión** en la pantalla inicial y pon
+  `http://IP-DE-TU-PC:8000` (misma red WiFi; el `run.bat` escucha en 0.0.0.0).
+  Pulsa **Probar conexión**, luego **Guardar**.
 
 ### 5. Úsalo
 
 1. **Crear cuenta** (se guarda en tu backend local).
 2. Pestaña **Ana IA**: responde sus preguntas; al final guardará tu perfil (`PROFILE_JSON`).
-3. Pestaña **Empleos**: desliza ofertas. A la derecha = postular con carta IA + abrir la oferta.
-4. Pestaña **Postulaciones**: revisa a qué aplicaste y qué guardaste.
+3. Pestaña **Empleos**: desliza a la derecha para preparar la carta y abrir la oferta.
+4. Pestaña **Seguimiento → Pendientes**: copia tu carta y confirma el envío cuando hayas
+   terminado en el sitio de la oferta.
 
 ## 🔌 API del backend
 
@@ -139,15 +142,14 @@ Variables de entorno del backend (o `backend/.env`): `OMNIROUTE_BASE_URL`,
 2. La app detecta ese bloque en el chat, lo parsea y lo envía a `PUT /me/preferences`.
 3. La pestaña Empleos consulta `/jobs/search` con esos filtros; el backend lanza todas las
    consultas **en paralelo** (`asyncio.gather`), limpia HTML, deduplica y pagina.
-4. Al postular, `/ai/cover-letter` pide a Ana una carta en el idioma de la oferta usando tu
-   perfil; tú la editas, se registra la postulación y se abre la oferta real.
+4. Si eliges generar la carta, `/ai/cover-letter` usa tu perfil para redactarla en el idioma de
+   la oferta. Puedes editarla, guardar el borrador y abrir la oferta real.
 
 ## ⚖️ Notas
 
 - La búsqueda usa **APIs públicas y documentadas** de cada bolsa de empleo. Respeta sus
   términos y límites de uso.
-- «Aplicar» abre la oferta original en tu navegador (postulación externa) y registra el
-  seguimiento; las bolsas no permiten envío automático de formularios vía API.
+- El envío se hace en la página original. Una vez enviado, puedes confirmarlo en Seguimiento.
 - Proyecto educativo bajo licencia MIT. No está afiliado a aiAutoApply ni a las bolsas citadas.
 
 ## 🛠️ Estructura
@@ -174,7 +176,7 @@ ApplyToAnything/
 │       ├── state/app_state.dart
 │       ├── widgets/           # SwipeDeck (Tinder) · JobCard · sheets
 │       └── screens/           # auth · home · swipe · chat · aplicaciones · perfil · ajustes
-└── .github/workflows/ci.yml   # CI: backend import + flutter analyze + APK debug
+└── .github/workflows/ci.yml   # CI: pruebas del backend y Flutter + APK instalable
 ```
 
 ---
